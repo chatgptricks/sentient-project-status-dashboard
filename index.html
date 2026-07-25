@@ -51,7 +51,7 @@
       background:#000;
     }
     .daily-wallpaper {
-      position:absolute;
+      position:fixed;
       z-index:0;
       inset:0;
       opacity:0;
@@ -65,14 +65,19 @@
       transition:opacity 900ms ease;
     }
     .daily-wallpaper.loaded { opacity:1; }
-    main { position:relative; z-index:1; }
+    .page-shade {
+      position:fixed;
+      z-index:1;
+      inset:0;
+      pointer-events:none;
+      background:linear-gradient(180deg, rgba(0,0,0,0) 0 150px, rgba(0,0,0,.025) 190px, rgba(0,0,0,.1) 52%, rgba(0,0,0,.1) 100%);
+    }
+    header, main { position:relative; z-index:2; }
     header {
       position:relative;
-      isolation:isolate;
-      overflow:hidden;
       min-height:150px;
       color:white;
-      background:#000;
+      background:transparent;
       padding:24px clamp(18px, 3vw, 42px) 18px;
     }
     .hero {
@@ -636,6 +641,8 @@
   </style>
 </head>
 <body>
+  <div class="daily-wallpaper" id="dailyWallpaper" aria-hidden="true"></div>
+  <div class="page-shade" aria-hidden="true"></div>
   <svg aria-hidden="true" width="0" height="0" focusable="false" style="position:absolute">
     <filter id="glass-refraction" x="-35%" y="-35%" width="170%" height="170%">
       <feTurbulence type="fractalNoise" baseFrequency=".012 .028" numOctaves="2" seed="17" result="noise"/>
@@ -643,10 +650,9 @@
     </filter>
   </svg>
   <header>
-    <div class="daily-wallpaper" id="dailyWallpaper" aria-hidden="true"></div>
     <div class="hero">
       <div>
-        <h1>🚦 Sentient Project Status</h1>
+        <h1>Sentient Project Status</h1>
         <p class="subtitle">Status, progress, next work, links, and completion scores.</p>
       </div>
       <div class="stats">
