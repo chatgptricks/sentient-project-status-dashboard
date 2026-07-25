@@ -172,10 +172,24 @@
     h2 { margin:0 0 12px; font-size:24px; }
     .panel p, .panel li { color:#cbd5e1; line-height:1.5; }
     .cards {
+      position:relative;
+      isolation:isolate;
       display:grid;
       grid-template-columns:repeat(2, minmax(0, 1fr));
       gap:18px;
     }
+    .liquid-scene {
+      position:absolute;
+      z-index:0;
+      inset:0;
+      width:100%;
+      height:100%;
+      border-radius:12px;
+      object-fit:cover;
+      opacity:.92;
+      pointer-events:none;
+    }
+    .cards > .project { z-index:1; }
     .project {
       position:relative;
       isolation:isolate;
@@ -221,10 +235,29 @@
     .project.high { box-shadow:-1px 0 0 rgba(255,161,203,.13), 1px 0 0 rgba(157,216,255,.18), 0 0 30px rgba(157,216,255,.1), var(--shadow); }
     .project.mid { box-shadow:-1px 0 0 rgba(255,161,203,.1), 1px 0 0 rgba(157,216,255,.14), 0 0 26px rgba(194,193,255,.07), var(--shadow); }
     .project.low { box-shadow:-1px 0 0 rgba(255,141,174,.16), 1px 0 0 rgba(157,216,255,.12), 0 0 26px rgba(255,140,171,.07), var(--shadow); }
+    .liquid-ready .project {
+      background:transparent;
+      border-color:transparent;
+      box-shadow:none;
+      overflow:visible;
+      backdrop-filter:none;
+    }
+    .liquid-ready .project::before, .liquid-ready .project::after { display:none; }
+    .liquid-ready .project-shell::before {
+      content:"";
+      position:absolute;
+      z-index:-1;
+      inset:0;
+      border-radius:12px;
+      background:linear-gradient(145deg, rgba(6,14,25,.38), rgba(7,13,23,.5));
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.13);
+      pointer-events:none;
+    }
     .project-shell {
       height:100%;
       display:grid;
       position:relative;
+      isolation:isolate;
       z-index:1;
       grid-template-columns:minmax(0, 1.05fr) minmax(0, .95fr);
       gap:2px;
@@ -655,6 +688,7 @@
   <main>
     <section style="margin-top:18px">
       <div class="cards">
+    <img class="liquid-scene" id="liquidScene" alt="" aria-hidden="true" crossorigin="anonymous">
     <article class="project mid" data-name="Maxx Tools" data-score="82" data-status="Active tool hub" data-priority="High" data-health="On track" data-search="Maxx Tools Sentient Tools Active tool hub Internal mini-app monorepo for Schedulr, Sentient Accounts, FX Tracker, Tweet Visualizer, Chart Animator, and Battle Giveaway. moltbotmaxx" data-group="Sentient Tools">
       <div class="project-shell">
         <div class="project-left">
@@ -1399,6 +1433,8 @@
     const wallpaperKey = 'sentient-project-status-apod';
     const firebaseConfig = window.SENTIENT_FIREBASE_CONFIG || {};
     const dailyWallpaper = document.querySelector('#dailyWallpaper');
+    const liquidScene = document.querySelector('#liquidScene');
+    const cardsRoot = document.querySelector('.cards');
     const syncStatus = document.querySelector('#syncStatus');
     const adminLink = document.querySelector('#adminLink');
     const adminLogin = document.querySelector('#adminLogin');
@@ -1409,6 +1445,51 @@
     let firestoreDocRef = null;
     let remoteSaveTimer = null;
     let applyingRemote = false;
+    let liquidGlassInstance = null;
+    async function initLiquidCards() {
+      if (liquidGlassInstance || !liquidScene.complete || !liquidScene.naturalWidth) return;
+      try {
+        const { LiquidGlass } = await import('https://cdn.jsdelivr.net/npm/@ybouane/liquidglass/dist/index.js');
+        liquidGlassInstance = await LiquidGlass.init({
+          root: cardsRoot,
+          glassElements: cardsRoot.querySelectorAll(':scope > .project'),
+          defaults: {
+            blurAmount: 0.025,
+            refraction: 0.48,
+            chromAberration: 0.04,
+            edgeHighlight: 0.1,
+            specular: 0.2,
+            fresnel: 0.72,
+            distortion: 0.015,
+            cornerRadius: 12,
+            zRadius: 16,
+            opacity: 0.56,
+            saturation: -0.08,
+            tintStrength: 0.1,
+            brightness: -0.12,
+            shadowOpacity: 0.14,
+            shadowSpread: 10,
+            shadowOffsetY: 8
+          }
+        });
+        document.body.classList.add('liquid-ready');
+      } catch (error) {
+        console.warn('WebGL liquid glass unavailable', error);
+      }
+    }
+    function updateLiquidScene(url) {
+      const source = `https://wsrv.nl/?url=${encodeURIComponent(url)}&output=jpg`;
+      if (liquidScene.dataset.source === source) {
+        initLiquidCards();
+        return;
+      }
+      liquidScene.dataset.source = source;
+      liquidScene.onload = () => {
+        if (liquidGlassInstance) liquidGlassInstance.markChanged(liquidScene);
+        else initLiquidCards();
+      };
+      liquidScene.src = source;
+    }
     function applyWallpaper(url, title) {
       if (!url) return;
       const image = new Image();
@@ -1416,6 +1497,7 @@
         dailyWallpaper.style.backgroundImage = `url("${url.replace(/"/g, '%22')}")`;
         dailyWallpaper.title = title || 'NASA Astronomy Picture of the Day';
         dailyWallpaper.classList.add('loaded');
+        updateLiquidScene(url);
       };
       image.src = url;
     }
