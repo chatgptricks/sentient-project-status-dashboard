@@ -403,6 +403,24 @@
       font-weight:900;
     }
     body.editing .edit-status { display:inline-flex; }
+    .sync-status {
+      display:inline-flex;
+      align-items:center;
+      padding:8px 10px;
+      border-radius:8px;
+      background:#1f2937;
+      color:#cbd5e1;
+      font-size:13px;
+      font-weight:900;
+    }
+    .sync-status[data-kind="good"] {
+      background:#064e3b;
+      color:#bbf7d0;
+    }
+    .sync-status[data-kind="warn"] {
+      background:#431407;
+      color:#fed7aa;
+    }
     .editable-list li {
       display:grid;
       grid-template-columns:1fr auto;
@@ -493,7 +511,8 @@
     </div>
     <section style="margin-top:18px">
       <div class="copy-row">
-        <span class="edit-status">Edit mode on · changes save in this browser</span>
+        <span class="edit-status">Edit mode on</span>
+        <span class="sync-status" id="syncStatus">Sync: checking</span>
         <button id="toggleEdit" type="button">Edit advancements & pending</button>
         <button id="exportEdits" type="button">Export edits</button>
         <button id="importEdits" type="button">Import edits</button>
@@ -1214,14 +1233,79 @@
       Completion scores are evidence-based estimates from project documentation, repository metadata, recent updates, and the July 25, 2026 project inventory.
     </footer>
   </main>
-  <script>
+  <script src="./firebase-config.js"></script>
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js';
+    import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
+
     const search = document.querySelector('#search');
     const buttons = [...document.querySelectorAll('button[data-group]')];
     const scoreKey = 'sentient-project-status-scores';
     const contentKey = 'sentient-project-status-content';
     const savedScores = JSON.parse(localStorage.getItem(scoreKey) || '{}');
     let savedContent = JSON.parse(localStorage.getItem(contentKey) || '{}');
+    const firebaseConfig = window.SENTIENT_FIREBASE_CONFIG || {};
+    const syncStatus = document.querySelector('#syncStatus');
+    let firestoreDb = null;
+    let firestoreDocRef = null;
+    let remoteSaveTimer = null;
     let activeGroup = 'all';
+    function hasFirebaseConfig() {
+      return Boolean(firebaseConfig && firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.appId);
+    }
+    function setSyncStatus(text, kind = 'neutral') {
+      syncStatus.textContent = text;
+      syncStatus.dataset.kind = kind;
+    }
+    async function initRemoteSync() {
+      if (!hasFirebaseConfig()) {
+        setSyncStatus('Sync: local only', 'warn');
+        return;
+      }
+      try {
+        const app = initializeApp(firebaseConfig);
+        firestoreDb = getFirestore(app);
+        firestoreDocRef = doc(firestoreDb, 'dashboards', 'sentient-project-status');
+        const snapshot = await getDoc(firestoreDocRef);
+        if (snapshot.exists()) {
+          const data = snapshot.data();
+          if (data.scores) {
+            Object.assign(savedScores, data.scores);
+            localStorage.setItem(scoreKey, JSON.stringify(savedScores));
+          }
+          if (data.content) {
+            savedContent = data.content;
+            localStorage.setItem(contentKey, JSON.stringify(savedContent));
+          }
+        } else {
+          await saveRemoteNow();
+        }
+        setSyncStatus('Sync: shared online', 'good');
+      } catch (error) {
+        console.warn('Firebase sync unavailable', error);
+        setSyncStatus('Sync: local fallback', 'warn');
+      }
+    }
+    async function saveRemoteNow() {
+      if (!firestoreDocRef) return;
+      await setDoc(firestoreDocRef, {
+        scores: savedScores,
+        content: savedContent,
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+      setSyncStatus('Sync: saved online', 'good');
+    }
+    function queueRemoteSave() {
+      if (!firestoreDocRef) return;
+      setSyncStatus('Sync: saving', 'neutral');
+      clearTimeout(remoteSaveTimer);
+      remoteSaveTimer = setTimeout(() => {
+        saveRemoteNow().catch(error => {
+          console.warn('Remote save failed', error);
+          setSyncStatus('Sync: save failed', 'warn');
+        });
+      }, 650);
+    }
     function updateScore(card, value) {
       const numeric = Number(value);
       card.dataset.score = String(numeric);
@@ -1234,6 +1318,7 @@
       localStorage.setItem(scoreKey, JSON.stringify(savedScores));
       refreshStats();
       refreshTable();
+      queueRemoteSave();
     }
     function visibleProjects() {
       return [...document.querySelectorAll('.project')].filter(card => !card.classList.contains('hidden'));
@@ -1290,6 +1375,7 @@
       });
       savedContent = payload;
       localStorage.setItem(contentKey, JSON.stringify(payload));
+      queueRemoteSave();
     }
     function loadContent() {
       allProjects().forEach(card => {
@@ -1312,6 +1398,19 @@
       });
       if (!enabled) saveContent();
     }
+    await initRemoteSync();
+    loadContent();
+    allProjects().forEach(card => {
+      const input = card.querySelector('input[type="range"]');
+      if (savedScores[card.dataset.name] !== undefined) {
+        input.value = savedScores[card.dataset.name];
+        updateScore(card, input.value);
+      }
+    });
+    setEditMode(false);
+    refreshStats();
+    refreshTable();
+
     buttons.forEach(btn => btn.addEventListener('click', () => {
       activeGroup = btn.dataset.group;
       buttons.forEach(b => b.classList.toggle('active', b === btn));
@@ -1320,14 +1419,8 @@
     search.addEventListener('input', applyFilters);
     document.querySelectorAll('.project').forEach(card => {
       const input = card.querySelector('input[type="range"]');
-      if (savedScores[card.dataset.name] !== undefined) {
-        input.value = savedScores[card.dataset.name];
-        updateScore(card, input.value);
-      }
       input.addEventListener('input', () => updateScore(card, input.value));
     });
-    loadContent();
-    setEditMode(false);
     document.querySelector('#toggleEdit').addEventListener('click', () => {
       setEditMode(!document.body.classList.contains('editing'));
     });
@@ -1381,6 +1474,7 @@
         }
       });
       setEditMode(false);
+      queueRemoteSave();
     });
     document.querySelector('#copyUpdate').addEventListener('click', async () => {
       const cards = allProjects().sort((a,b) => Number(b.dataset.score) - Number(a.dataset.score));
