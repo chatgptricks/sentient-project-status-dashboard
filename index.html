@@ -172,58 +172,25 @@
     h2 { margin:0 0 12px; font-size:24px; }
     .panel p, .panel li { color:#cbd5e1; line-height:1.5; }
     .cards {
-      position:relative;
-      isolation:isolate;
       display:grid;
       grid-template-columns:repeat(2, minmax(0, 1fr));
       gap:14px;
     }
-    .liquid-scene {
-      position:absolute;
-      z-index:0;
-      inset:auto;
-      width:100vw;
-      height:100vh;
-      max-width:none;
-      max-height:none;
-      object-fit:cover;
-      object-position:center;
-      opacity:1;
-      pointer-events:none;
-      clip-path:inset(0);
-    }
-    .cards > .project { z-index:1; }
     .project {
       position:relative;
-      isolation:isolate;
       height:476px;
       background:
-        linear-gradient(105deg, rgba(255,255,255,.2), transparent 22%, transparent 74%, rgba(157,216,255,.1)),
-        linear-gradient(155deg, rgba(30,39,51,.6), rgba(8,12,19,.5));
-      border:1px solid rgba(255,255,255,.25);
+        linear-gradient(135deg, rgba(255,255,255,.18), rgba(217,235,255,.055) 32%, rgba(105,157,205,.09) 100%),
+        rgba(7,12,19,.52);
+      border:1px solid rgba(237,247,255,.28);
       border-radius:12px;
       padding:0;
       box-shadow:
-        -1px 0 0 rgba(255,69,154,.13),
-        1px 0 0 rgba(108,218,255,.16),
-        0 0 0 1px rgba(255,255,255,.06),
-        var(--shadow);
+        inset 0 1px 0 rgba(255,255,255,.19),
+        0 18px 50px rgba(0,0,0,.28),
+        0 2px 10px rgba(129,184,229,.12);
       overflow:hidden;
-      backdrop-filter:blur(30px) saturate(125%) contrast(104%);
-    }
-    .project::before {
-      content:"";
-      position:absolute;
-      z-index:-1;
-      inset:-30%;
-      opacity:.48;
-      background:
-        radial-gradient(ellipse at 18% 30%, rgba(173,221,255,.2), transparent 20%),
-        radial-gradient(ellipse at 75% 20%, rgba(135,195,255,.16), transparent 23%),
-        radial-gradient(ellipse at 54% 82%, rgba(198,169,255,.09), transparent 22%),
-        repeating-linear-gradient(112deg, transparent 0 17px, rgba(255,255,255,.035) 18px 19px, transparent 20px 38px);
-      filter:url(#glass-refraction) blur(10px);
-      transform:rotate(-3deg) scale(1.12);
+      backdrop-filter:blur(22px) saturate(130%);
     }
     .project::after {
       content:"";
@@ -231,30 +198,8 @@
       pointer-events:none;
       inset:0;
       border-radius:inherit;
-      background:linear-gradient(115deg, rgba(255,255,255,.24), transparent 13% 74%, rgba(157,216,255,.1));
-      mix-blend-mode:screen;
-      opacity:.42;
-    }
-    .project.high { box-shadow:-1px 0 0 rgba(255,161,203,.13), 1px 0 0 rgba(157,216,255,.18), 0 0 30px rgba(157,216,255,.1), var(--shadow); }
-    .project.mid { box-shadow:-1px 0 0 rgba(255,161,203,.1), 1px 0 0 rgba(157,216,255,.14), 0 0 26px rgba(194,193,255,.07), var(--shadow); }
-    .project.low { box-shadow:-1px 0 0 rgba(255,141,174,.16), 1px 0 0 rgba(157,216,255,.12), 0 0 26px rgba(255,140,171,.07), var(--shadow); }
-    .liquid-ready .project {
-      background:transparent;
-      border-color:transparent;
-      box-shadow:none;
-      overflow:visible;
-      backdrop-filter:none;
-    }
-    .liquid-ready .project::before, .liquid-ready .project::after { display:none; }
-    .liquid-ready .project-shell::before {
-      content:"";
-      position:absolute;
-      z-index:-1;
-      inset:0;
-      border-radius:12px;
-      background:linear-gradient(145deg, rgba(5,11,19,.08), rgba(6,12,20,.18));
-      box-shadow:inset 0 1px 0 rgba(255,255,255,.36), inset 0 -1px 0 rgba(179,221,255,.14);
-      pointer-events:none;
+      background:linear-gradient(115deg, rgba(255,255,255,.15), transparent 18% 74%, rgba(157,216,255,.06));
+      opacity:.7;
     }
     .project-shell {
       height:100%;
@@ -668,12 +613,6 @@
 <body>
   <div class="daily-wallpaper" id="dailyWallpaper" aria-hidden="true"></div>
   <div class="page-shade" aria-hidden="true"></div>
-  <svg aria-hidden="true" width="0" height="0" focusable="false" style="position:absolute">
-    <filter id="glass-refraction" x="-35%" y="-35%" width="170%" height="170%">
-      <feTurbulence type="fractalNoise" baseFrequency=".012 .028" numOctaves="2" seed="17" result="noise"/>
-      <feDisplacementMap in="SourceGraphic" in2="noise" scale="22" xChannelSelector="R" yChannelSelector="G"/>
-    </filter>
-  </svg>
   <header>
     <div class="hero">
       <div>
@@ -691,7 +630,6 @@
   <main>
     <section style="margin-top:18px">
       <div class="cards">
-    <img class="liquid-scene" id="liquidScene" alt="" aria-hidden="true" crossorigin="anonymous">
     <article class="project mid" data-name="Maxx Tools" data-score="82" data-status="Active tool hub" data-priority="High" data-health="On track" data-search="Maxx Tools Sentient Tools Active tool hub Internal mini-app monorepo for Schedulr, Sentient Accounts, FX Tracker, Tweet Visualizer, Chart Animator, and Battle Giveaway. moltbotmaxx" data-group="Sentient Tools">
       <div class="project-shell">
         <div class="project-left">
@@ -1436,8 +1374,6 @@
     const wallpaperKey = 'sentient-project-status-apod';
     const firebaseConfig = window.SENTIENT_FIREBASE_CONFIG || {};
     const dailyWallpaper = document.querySelector('#dailyWallpaper');
-    const liquidScene = document.querySelector('#liquidScene');
-    const cardsRoot = document.querySelector('.cards');
     const syncStatus = document.querySelector('#syncStatus');
     const adminLink = document.querySelector('#adminLink');
     const adminLogin = document.querySelector('#adminLogin');
@@ -1448,60 +1384,6 @@
     let firestoreDocRef = null;
     let remoteSaveTimer = null;
     let applyingRemote = false;
-    let liquidGlassInstance = null;
-    async function initLiquidCards() {
-      if (liquidGlassInstance || !liquidScene.complete || !liquidScene.naturalWidth) return;
-      try {
-        const { LiquidGlass } = await import('https://cdn.jsdelivr.net/npm/@ybouane/liquidglass/dist/index.js');
-        liquidGlassInstance = await LiquidGlass.init({
-          root: cardsRoot,
-          glassElements: cardsRoot.querySelectorAll(':scope > .project'),
-          defaults: {
-            blurAmount: 0.018,
-            refraction: 0.27,
-            chromAberration: 0.006,
-            edgeHighlight: 0.5,
-            specular: 0.28,
-            fresnel: 0.66,
-            distortion: 0.008,
-            cornerRadius: 12,
-            zRadius: 16,
-            opacity: 0.42,
-            saturation: -0.18,
-            tintStrength: 0.18,
-            brightness: -0.13,
-            shadowOpacity: 0.2,
-            shadowSpread: 14,
-            shadowOffsetY: 10
-          }
-        });
-        document.body.classList.add('liquid-ready');
-      } catch (error) {
-        console.warn('WebGL liquid glass unavailable', error);
-      }
-    }
-    function updateLiquidScene(url) {
-      const source = `https://wsrv.nl/?url=${encodeURIComponent(url)}&output=jpg`;
-      if (liquidScene.dataset.source === source) {
-        initLiquidCards();
-        return;
-      }
-      liquidScene.dataset.source = source;
-      liquidScene.onload = () => {
-        syncLiquidScene();
-        if (liquidGlassInstance) liquidGlassInstance.markChanged(liquidScene);
-        else initLiquidCards();
-      };
-      liquidScene.src = source;
-    }
-    function syncLiquidScene() {
-      const rect = cardsRoot.getBoundingClientRect();
-      liquidScene.style.left = `${-rect.left}px`;
-      liquidScene.style.top = `${-rect.top}px`;
-      liquidScene.style.clipPath = `inset(${rect.top}px ${Math.max(0, window.innerWidth - rect.right)}px ${Math.max(0, window.innerHeight - rect.bottom)}px ${rect.left}px)`;
-      if (liquidGlassInstance) liquidGlassInstance.markChanged(liquidScene);
-    }
-    window.addEventListener('resize', syncLiquidScene, { passive:true });
     function applyWallpaper(url, title) {
       if (!url) return;
       const image = new Image();
@@ -1509,7 +1391,6 @@
         dailyWallpaper.style.backgroundImage = `url("${url.replace(/"/g, '%22')}")`;
         dailyWallpaper.title = title || 'NASA Astronomy Picture of the Day';
         dailyWallpaper.classList.add('loaded');
-        updateLiquidScene(url);
       };
       image.src = url;
     }
