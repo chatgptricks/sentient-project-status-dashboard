@@ -1371,6 +1371,7 @@
     let savedContent = JSON.parse(localStorage.getItem(contentKey) || '{}');
     const adminSessionKey = 'sentient-project-status-admin';
     const wallpaperKey = 'sentient-project-status-apod';
+    const nasaLibraryQueries = ['nebula', 'galaxy', 'star cluster', 'supernova', 'cosmic'];
     const firebaseConfig = window.SENTIENT_FIREBASE_CONFIG || {};
     const nasaApiKey = window.SENTIENT_NASA_API_KEY || 'DEMO_KEY';
     const dailyWallpaper = document.querySelector('#dailyWallpaper');
@@ -1385,26 +1386,49 @@
     let remoteSaveTimer = null;
     let applyingRemote = false;
     function applyWallpaper(url, title) {
-      if (!url) return;
-      const image = new Image();
-      image.onload = () => {
-        dailyWallpaper.style.backgroundImage = `url("${url.replace(/"/g, '%22')}")`;
-        dailyWallpaper.title = title || 'NASA Astronomy Picture of the Day';
-        dailyWallpaper.classList.add('loaded');
-      };
-      image.src = url;
+      if (!url) return Promise.resolve(false);
+      return new Promise((resolve) => {
+        const image = new Image();
+        image.onload = () => {
+          dailyWallpaper.style.backgroundImage = `url("${url.replace(/"/g, '%22')}")`;
+          dailyWallpaper.title = title || 'NASA image';
+          dailyWallpaper.classList.add('loaded');
+          resolve(true);
+        };
+        image.onerror = () => resolve(false);
+        image.src = url;
+      });
     }
-    async function loadDailyWallpaper() {
-      const requestedDate = new URLSearchParams(window.location.search).get('wallpaperDate');
-      const hasRequestedDate = /^\d{4}-\d{2}-\d{2}$/.test(requestedDate || '');
-      const imageDate = hasRequestedDate ? requestedDate : null;
+    async function loadNasaLibraryWallpaper() {
       try {
-        const cached = JSON.parse(localStorage.getItem(wallpaperKey) || 'null');
-        if (hasRequestedDate && cached?.date === imageDate && cached.url) {
-          applyWallpaper(cached.url, cached.title);
-          return;
+        const query = nasaLibraryQueries[Math.floor(Math.random() * nasaLibraryQueries.length)];
+        const searchResponse = await fetch(`https://images-api.nasa.gov/search?media_type=image&page=1&page_size=100&q=${encodeURIComponent(query)}`);
+        if (!searchResponse.ok) return false;
+        const search = await searchResponse.json();
+        const candidates = (search.collection?.items || []).filter((item) => item.data?.[0]?.nasa_id);
+        let attempts = Math.min(candidates.length, 5);
+        while (candidates.length && attempts-- > 0) {
+          const index = Math.floor(Math.random() * candidates.length);
+          const candidate = candidates.splice(index, 1)[0];
+          const data = candidate.data[0];
+          const assetResponse = await fetch(`https://images-api.nasa.gov/asset/${encodeURIComponent(data.nasa_id)}`);
+          if (!assetResponse.ok) continue;
+          const asset = await assetResponse.json();
+          const links = (asset.collection?.items || []).map((item) => item.href?.replace(/^http:/, 'https:')).filter(Boolean);
+          const original = links.find((href) => /~orig\.(?:jpe?g|png|webp)$/i.test(href));
+          const fallback = links.find((href) => /~medium\.(?:jpe?g|png|webp)$/i.test(href));
+          if (await applyWallpaper(original || fallback, `NASA Image Library: ${data.title || 'Space'}`)) return true;
+          if (original && fallback && await applyWallpaper(fallback, `NASA Image Library: ${data.title || 'Space'}`)) return true;
         }
-        const request = hasRequestedDate
+        return false;
+      } catch (error) {
+        console.warn('NASA Image Library wallpaper unavailable', error);
+        return false;
+      }
+    }
+    async function loadApodWallpaper(imageDate) {
+      try {
+        const request = imageDate
           ? `https://api.nasa.gov/planetary/apod?api_key=${encodeURIComponent(nasaApiKey)}&thumbs=true&date=${imageDate}`
           : `https://api.nasa.gov/planetary/apod?api_key=${encodeURIComponent(nasaApiKey)}&thumbs=true&count=1`;
         const response = await fetch(request);
@@ -1414,14 +1438,27 @@
         const url = data?.media_type === 'image'
           ? data.hdurl || data.url
           : data?.thumbnail_url;
-        if (!url) return;
-        if (hasRequestedDate) {
+        if (!url) return false;
+        if (imageDate) {
           localStorage.setItem(wallpaperKey, JSON.stringify({ date:data.date || imageDate, url, title:data.title || '' }));
         }
-        applyWallpaper(url, data.title);
+        return applyWallpaper(url, `NASA APOD: ${data.title || 'Space'}`);
       } catch (error) {
-        console.warn('Daily wallpaper unavailable', error);
+        console.warn('NASA APOD wallpaper unavailable', error);
+        return false;
       }
+    }
+    async function loadDailyWallpaper() {
+      const requestedDate = new URLSearchParams(window.location.search).get('wallpaperDate');
+      const hasRequestedDate = /^\d{4}-\d{2}-\d{2}$/.test(requestedDate || '');
+      const imageDate = hasRequestedDate ? requestedDate : null;
+      if (hasRequestedDate) {
+        const cached = JSON.parse(localStorage.getItem(wallpaperKey) || 'null');
+        if (cached?.date === imageDate && cached.url && await applyWallpaper(cached.url, cached.title)) return;
+        await loadApodWallpaper(imageDate);
+        return;
+      }
+      if (!await loadNasaLibraryWallpaper()) await loadApodWallpaper(null);
     }
     function hasFirebaseConfig() {
       return Boolean(firebaseConfig && firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.appId);

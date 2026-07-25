@@ -23,7 +23,8 @@ gh secret set FIREBASE_CONFIG --repo chatgptricks/sentient-project-status-dashbo
 `firebase-config.example.js` as the checked-in development template.
 
 The same deployment also expects `NASA_API_KEY`, stored as a GitHub Actions
-secret. It supplies the random high-resolution APOD wallpaper.
+secret. It supports date-specific APOD wallpapers and provides a fallback for
+the random high-resolution NASA Image Library wallpaper.
 
 ## 3. Firestore Document
 
