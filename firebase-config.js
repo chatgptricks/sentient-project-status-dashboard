@@ -5,10 +5,10 @@
 // Firebase web config is public by design; access is controlled by Firestore
 // security rules, not by hiding these values.
 window.SENTIENT_FIREBASE_CONFIG = {
-  apiKey: "",
-  authDomain: "",
-  projectId: "",
-  storageBucket: "",
-  messagingSenderId: "",
-  appId: ""
+  apiKey: "AIzaSyARomdueEfu_pY5nVkqMiSGPRc7CB2kDPg",
+  authDomain: "sentient-status-dash.firebaseapp.com",
+  projectId: "sentient-status-dash",
+  storageBucket: "sentient-status-dash.firebasestorage.app",
+  messagingSenderId: "568869147211",
+  appId: "1:568869147211:web:cdcab7cb9add7d17d8f3ce"
 };
