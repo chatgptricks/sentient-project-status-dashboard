@@ -145,7 +145,7 @@
     .project-shell {
       height:100%;
       display:grid;
-      grid-template-columns:minmax(220px, .72fr) minmax(320px, 1.28fr);
+      grid-template-columns:minmax(300px, .9fr) minmax(280px, 1.1fr);
     }
     .project-left, .project-right {
       min-width:0;
@@ -256,6 +256,9 @@
       -webkit-box-orient:vertical;
     }
     .activity {
+      width:fit-content;
+      max-width:100%;
+      align-self:start;
       margin:0;
       padding:10px;
       border:1px solid var(--line);
@@ -265,10 +268,8 @@
       overflow:hidden;
     }
     .activity-head {
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:12px;
+      display:grid;
+      gap:2px;
       margin-bottom:6px;
     }
     .activity-head b {
@@ -277,7 +278,7 @@
     .activity-head span {
       color:var(--muted);
       font-size:11px;
-      text-align:right;
+      text-align:left;
     }
     .months {
       display:grid;
