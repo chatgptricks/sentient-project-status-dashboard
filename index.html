@@ -84,18 +84,36 @@
     }
     .stats {
       display:grid;
-      grid-template-columns:repeat(2, minmax(0,1fr));
-      gap:12px;
+      grid-template-columns:repeat(4, minmax(88px,1fr));
+      gap:8px;
+      flex:0 0 440px;
     }
     .stat {
+      min-width:0;
+      min-height:70px;
+      display:flex;
+      align-items:center;
+      gap:6px;
       border:1px solid rgba(207,255,4,.18);
-      background:var(--glass);
-      border-radius:8px;
-      padding:12px;
+      background:linear-gradient(145deg, rgba(255,255,255,.1), rgba(255,255,255,.025));
+      border-radius:10px;
+      padding:10px 11px;
       backdrop-filter:blur(18px) saturate(150%);
     }
-    .stat strong { display:block; font-size:26px; }
-    .stat span { color:var(--muted); font-size:12px; }
+    .stat-icon {
+      display:grid;
+      place-items:center;
+      width:22px;
+      height:22px;
+      flex:none;
+      border-radius:7px;
+      color:var(--green);
+      background:rgba(207,255,4,.12);
+      font-size:12px;
+      font-weight:900;
+    }
+    .stat strong { display:block; font-size:25px; line-height:.95; }
+    .stat span { display:block; color:var(--muted); font-size:10px; margin-top:4px; white-space:nowrap; }
     main {
       max-width:none;
       margin:0;
@@ -553,13 +571,49 @@
     }
     th { color:#475569; font-size:12px; text-transform:uppercase; }
     .hidden { display:none !important; }
-    footer { margin-top:34px; color:#64748b; font-size:13px; }
+    footer {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+      margin-top:34px;
+      padding:16px 0 4px;
+      border-top:1px solid rgba(255,255,255,.08);
+      color:#64748b;
+      font-size:13px;
+    }
+    .admin-area { display:flex; align-items:center; justify-content:flex-end; gap:8px; flex-wrap:wrap; }
+    .admin-link {
+      border:0;
+      padding:4px 0;
+      background:transparent;
+      color:var(--green);
+      font-size:13px;
+      font-weight:900;
+    }
+    .admin-login, .admin-controls { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+    .admin-login[hidden], .admin-controls[hidden] { display:none; }
+    #adminPassword { width:130px; padding:8px 10px; font-size:12px; }
+    .admin-login button, .admin-controls button {
+      padding:8px 10px;
+      font-size:12px;
+      background:var(--green);
+      border-color:var(--green);
+      color:#101400;
+    }
+    .admin-login button { background:rgba(255,255,255,.08); border-color:var(--line); color:var(--green); }
+    .admin-error { color:#ff9ab5; font-size:12px; font-weight:800; }
+    .admin-controls .sync-status, .admin-controls .edit-status { padding:7px 9px; font-size:12px; }
+    .admin-logout { background:transparent !important; border-color:rgba(255,255,255,.14) !important; color:var(--muted) !important; }
     @media (max-width:1180px) {
       .cards { grid-template-columns:1fr; }
     }
     @media (max-width:820px) {
       .hero, .toolbar { display:grid; grid-template-columns:1fr; }
       .filters { justify-content:flex-start; }
+      .stats { grid-template-columns:repeat(2, minmax(0,1fr)); flex-basis:auto; }
+      footer { align-items:flex-start; flex-direction:column; }
+      .admin-area { justify-content:flex-start; }
       .project { height:auto; min-height:760px; }
       .project-shell { grid-template-columns:1fr; }
       .project-left { border-right:0; border-bottom:1px solid var(--line); }
@@ -584,10 +638,10 @@
         <p class="subtitle">Status, progress, next work, links, and completion scores.</p>
       </div>
       <div class="stats">
-        <div class="stat"><strong>12</strong><span>projects</span></div>
-        <div class="stat"><strong>79</strong><span>avg completion</span></div>
-        <div class="stat"><strong>9</strong><span>top priorities</span></div>
-        <div class="stat"><strong>0</strong><span>review</span></div>
+        <div class="stat"><i class="stat-icon">◆</i><div><strong>12</strong><span>projects</span></div></div>
+        <div class="stat"><i class="stat-icon">↗</i><div><strong>79</strong><span>avg completion</span></div></div>
+        <div class="stat"><i class="stat-icon">!</i><div><strong>9</strong><span>top priorities</span></div></div>
+        <div class="stat"><i class="stat-icon">○</i><div><strong>0</strong><span>review</span></div></div>
       </div>
     </div>
   </header>
@@ -600,15 +654,6 @@
       </div>
     </div>
     <section style="margin-top:18px">
-      <div class="copy-row">
-        <span class="edit-status">Edit mode on</span>
-        <span class="sync-status" id="syncStatus">Sync: checking</span>
-        <button id="toggleEdit" type="button">Edit work</button>
-        <button id="exportEdits" type="button">Export</button>
-        <button id="importEdits" type="button">Import</button>
-        <input id="importFile" type="file" accept="application/json" hidden>
-        <button id="copyUpdate" type="button">Copy summary</button>
-      </div>
       <div class="cards">
     <article class="project mid" data-name="Maxx Tools" data-score="82" data-status="Active tool hub" data-priority="High" data-health="On track" data-search="Maxx Tools Sentient Tools Active tool hub Internal mini-app monorepo for Schedulr, Sentient Accounts, FX Tracker, Tweet Visualizer, Chart Animator, and Battle Giveaway. moltbotmaxx" data-group="Sentient Tools">
       <div class="project-shell">
@@ -639,7 +684,7 @@
             <div><b>Workspace</b><span>moltbotmaxx</span></div>
           </div>
           <div class="metrics"><span>6 tool families</span><span>No pending workspace changes</span><span>GitHub pushed 2026-07-25</span></div>
-          <div class="actions"><a href="https://github.com/moltbotmaxx/maxx-tools" target="_blank" rel="noreferrer">🌐 Repository</a></div>
+          <div class="actions"><a href="https://github.com/moltbotmaxx/maxx-tools" target="_blank" rel="noreferrer">🌐 Repository</a><a href="https://maxxbot.cloud/" target="_blank" rel="noreferrer">🚀 Live site</a></div>
         </div>
         <div class="project-right">
           
@@ -1170,7 +1215,7 @@
             <div><b>Workspace</b><span>chatgptricks</span></div>
           </div>
           <div class="metrics"><span>CSV source of truth</span><span>SQLite mirror</span><span>Static site</span><span>3 pending changes</span></div>
-          <div class="actions"><a href="https://github.com/chatgptricks/sentient-case-studies" target="_blank" rel="noreferrer">🌐 Repository</a></div>
+          <div class="actions"><a href="https://github.com/chatgptricks/sentient-case-studies" target="_blank" rel="noreferrer">🌐 Repository</a><a href="https://chatgptricks.github.io/sentient-case-studies/" target="_blank" rel="noreferrer">🚀 Live site</a></div>
         </div>
         <div class="project-right">
           
@@ -1320,7 +1365,25 @@
     </div>
     </section>
     <footer>
-      Scores are estimates based on docs, repo activity, and the July 25, 2026 inventory.
+      <span>Scores are estimates based on docs, repo activity, and the July 25, 2026 inventory.</span>
+      <div class="admin-area">
+        <button class="admin-link" id="adminLink" type="button">Admin</button>
+        <form class="admin-login" id="adminLogin" hidden>
+          <input id="adminPassword" type="password" placeholder="Password" autocomplete="current-password">
+          <button type="submit">Enter</button>
+          <span class="admin-error" id="adminError" hidden>Wrong password</span>
+        </form>
+        <div class="admin-controls" id="adminControls" hidden>
+          <span class="edit-status">Edit mode on</span>
+          <span class="sync-status" id="syncStatus">Sync: checking</span>
+          <button id="toggleEdit" type="button">Edit work</button>
+          <button id="exportEdits" type="button">Export</button>
+          <button id="importEdits" type="button">Import</button>
+          <input id="importFile" type="file" accept="application/json" hidden>
+          <button id="copyUpdate" type="button">Copy summary</button>
+          <button class="admin-logout" id="logoutAdmin" type="button">Log out</button>
+        </div>
+      </div>
     </footer>
   </main>
   <script src="./firebase-config.js"></script>
@@ -1334,8 +1397,14 @@
     const contentKey = 'sentient-project-status-content';
     const savedScores = JSON.parse(localStorage.getItem(scoreKey) || '{}');
     let savedContent = JSON.parse(localStorage.getItem(contentKey) || '{}');
+    const adminSessionKey = 'sentient-project-status-admin';
     const firebaseConfig = window.SENTIENT_FIREBASE_CONFIG || {};
     const syncStatus = document.querySelector('#syncStatus');
+    const adminLink = document.querySelector('#adminLink');
+    const adminLogin = document.querySelector('#adminLogin');
+    const adminPassword = document.querySelector('#adminPassword');
+    const adminError = document.querySelector('#adminError');
+    const adminControls = document.querySelector('#adminControls');
     let firestoreDb = null;
     let firestoreDocRef = null;
     let remoteSaveTimer = null;
@@ -1514,12 +1583,20 @@
       setSyncStatus('Sync: shared online', 'good');
     }
     function setEditMode(enabled) {
+      if (enabled && sessionStorage.getItem(adminSessionKey) !== 'true') return;
       document.body.classList.toggle('editing', enabled);
       document.querySelector('#toggleEdit').textContent = enabled ? 'Done' : 'Edit work';
       document.querySelectorAll('.item-text').forEach(item => {
         item.contentEditable = enabled ? 'true' : 'false';
       });
       if (!enabled && !applyingRemote) saveContent();
+    }
+    function setAdminState(loggedIn) {
+      adminLink.hidden = loggedIn;
+      adminLogin.hidden = true;
+      adminError.hidden = true;
+      adminControls.hidden = !loggedIn;
+      if (!loggedIn) setEditMode(false);
     }
     await initRemoteSync();
     loadContent();
@@ -1530,7 +1607,7 @@
         updateScore(card, input.value);
       }
     });
-    setEditMode(false);
+    setAdminState(sessionStorage.getItem(adminSessionKey) === 'true');
     refreshStats();
     refreshTable();
 
@@ -1547,6 +1624,25 @@
     document.querySelector('#toggleEdit').addEventListener('click', () => {
       setEditMode(!document.body.classList.contains('editing'));
     });
+    adminLink.addEventListener('click', () => {
+      adminLogin.hidden = false;
+      adminPassword.focus();
+    });
+    adminLogin.addEventListener('submit', event => {
+      event.preventDefault();
+      if (adminPassword.value === 'adminadmin') {
+        sessionStorage.setItem(adminSessionKey, 'true');
+        adminPassword.value = '';
+        setAdminState(true);
+        return;
+      }
+      adminError.hidden = false;
+      adminPassword.select();
+    });
+    document.querySelector('#logoutAdmin').addEventListener('click', () => {
+      sessionStorage.removeItem(adminSessionKey);
+      setAdminState(false);
+    });
     document.addEventListener('input', event => {
       if (event.target.classList && event.target.classList.contains('item-text')) saveContent();
     });
@@ -1559,7 +1655,7 @@
         const listName = event.target.dataset.list;
         const text = prompt(listName === 'advancements' ? 'New advancement' : 'New pending item');
         if (!text || !text.trim()) return;
-        const list = event.target.closest('details').querySelector(`[data-list="${listName}"]`);
+        const list = event.target.closest('.work-list').querySelector(`[data-list="${listName}"]`);
         list.appendChild(itemHtml(text.trim()));
         setEditMode(true);
         saveContent();
