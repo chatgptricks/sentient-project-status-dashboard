@@ -1,0 +1,1055 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sentient Project Status Dashboard</title>
+  <style>
+    :root {
+      --ink:#14213d;
+      --muted:#64748b;
+      --paper:#fffaf0;
+      --line:#e2e8f0;
+      --green:#15a46c;
+      --lime:#a3e635;
+      --blue:#2563eb;
+      --violet:#7c3aed;
+      --orange:#f97316;
+      --red:#e11d48;
+      --charcoal:#111827;
+      --shadow:0 18px 40px rgba(20,33,61,.12);
+    }
+    * { box-sizing:border-box; }
+    body {
+      margin:0;
+      color:var(--ink);
+      font-family:Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:#f7f7ef;
+    }
+    header {
+      min-height:340px;
+      color:white;
+      background:
+        linear-gradient(135deg, rgba(17,24,39,.96), rgba(20,83,45,.92)),
+        radial-gradient(circle at 20% 20%, rgba(163,230,53,.35), transparent 34%);
+      padding:38px clamp(18px, 5vw, 72px);
+    }
+    .hero {
+      max-width:1320px;
+      margin:auto;
+      display:grid;
+      grid-template-columns:1.15fr .85fr;
+      gap:28px;
+      align-items:end;
+    }
+    h1 {
+      margin:0;
+      font-size:clamp(36px, 6vw, 76px);
+      line-height:.95;
+      letter-spacing:0;
+    }
+    .subtitle {
+      color:#dbeafe;
+      max-width:820px;
+      font-size:18px;
+      line-height:1.55;
+      margin:18px 0 0;
+    }
+    .stats {
+      display:grid;
+      grid-template-columns:repeat(2, minmax(0,1fr));
+      gap:12px;
+    }
+    .stat {
+      border:1px solid rgba(255,255,255,.22);
+      background:rgba(255,255,255,.1);
+      border-radius:8px;
+      padding:16px;
+      backdrop-filter:blur(10px);
+    }
+    .stat strong { display:block; font-size:34px; }
+    .stat span { color:#bfdbfe; font-size:13px; }
+    main {
+      max-width:1320px;
+      margin:-38px auto 0;
+      padding:0 clamp(18px, 5vw, 72px) 70px;
+    }
+    .toolbar {
+      position:sticky;
+      top:0;
+      z-index:4;
+      display:grid;
+      grid-template-columns:minmax(220px, 1fr) auto;
+      gap:12px;
+      padding:14px 0;
+      background:rgba(247,247,239,.88);
+      backdrop-filter:blur(14px);
+    }
+    input {
+      width:100%;
+      border:1px solid var(--line);
+      border-radius:8px;
+      padding:13px 14px;
+      font-size:15px;
+      background:white;
+    }
+    .filters { display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+    button {
+      border:1px solid var(--line);
+      background:white;
+      color:var(--ink);
+      border-radius:8px;
+      padding:11px 12px;
+      font-weight:800;
+      cursor:pointer;
+    }
+    button.active { background:var(--charcoal); color:white; border-color:var(--charcoal); }
+    .briefing {
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:14px;
+      margin-bottom:18px;
+    }
+    .panel {
+      background:white;
+      border:1px solid var(--line);
+      border-radius:8px;
+      padding:18px;
+      box-shadow:var(--shadow);
+    }
+    h2 { margin:0 0 12px; font-size:24px; }
+    .panel p, .panel li { color:#475569; line-height:1.5; }
+    .cards {
+      display:grid;
+      grid-template-columns:repeat(auto-fit, minmax(340px, 1fr));
+      gap:16px;
+    }
+    .project {
+      background:white;
+      border:1px solid var(--line);
+      border-top:7px solid var(--blue);
+      border-radius:8px;
+      padding:16px;
+      box-shadow:0 12px 28px rgba(20,33,61,.08);
+    }
+    .project.high { border-top-color:var(--green); }
+    .project.mid { border-top-color:var(--orange); }
+    .project.low { border-top-color:var(--red); }
+    .project-head, .identity, .badges, .metrics, .actions {
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+    .project-head { justify-content:space-between; }
+    .emoji {
+      width:48px;
+      height:48px;
+      display:grid;
+      place-items:center;
+      border-radius:8px;
+      background:#eef6ff;
+      font-size:25px;
+    }
+    .group {
+      margin:0 0 2px;
+      color:var(--muted);
+      font-size:12px;
+      font-weight:900;
+      text-transform:uppercase;
+    }
+    h3 { margin:0; font-size:22px; }
+    .score {
+      min-width:82px;
+      text-align:right;
+      color:var(--charcoal);
+    }
+    .score strong { font-size:34px; }
+    .score span { color:var(--muted); font-weight:800; }
+    .score-control {
+      display:grid;
+      grid-template-columns:auto 1fr;
+      gap:10px;
+      align-items:center;
+      color:#64748b;
+      font-size:12px;
+      font-weight:900;
+      margin:-2px 0 12px;
+    }
+    input[type="range"] {
+      padding:0;
+      accent-color:var(--green);
+      border:0;
+      background:transparent;
+    }
+    .meter {
+      height:10px;
+      background:#e5e7eb;
+      border-radius:999px;
+      overflow:hidden;
+      margin:14px 0;
+    }
+    .meter i {
+      display:block;
+      height:100%;
+      background:linear-gradient(90deg, var(--green), var(--lime));
+      border-radius:999px;
+    }
+    .badges, .metrics, .actions { flex-wrap:wrap; }
+    .badge, .metrics span {
+      border-radius:999px;
+      padding:5px 9px;
+      font-size:12px;
+      font-weight:900;
+      background:#f1f5f9;
+      color:#475569;
+    }
+    .badge.good { background:#dcfce7; color:#166534; }
+    .badge.warn { background:#ffedd5; color:#9a3412; }
+    .badge.priority { background:#dbeafe; color:#1d4ed8; }
+    .summary { color:#334155; line-height:1.5; }
+    .facts {
+      display:grid;
+      gap:8px;
+      margin:12px 0;
+    }
+    .facts div {
+      display:grid;
+      grid-template-columns:96px 1fr;
+      gap:8px;
+      padding:8px;
+      border-radius:8px;
+      background:#f8fafc;
+      font-size:13px;
+    }
+    .facts b { color:#0f172a; }
+    .facts span { color:#475569; overflow-wrap:anywhere; }
+    details {
+      border-top:1px dashed var(--line);
+      padding-top:10px;
+      margin-top:10px;
+    }
+    summary {
+      cursor:pointer;
+      font-weight:900;
+      color:#0f172a;
+    }
+    li { margin:6px 0; color:#475569; }
+    .actions { margin-top:14px; }
+    .actions a {
+      display:inline-flex;
+      min-height:34px;
+      align-items:center;
+      border-radius:8px;
+      padding:8px 10px;
+      background:#111827;
+      color:white;
+      font-weight:900;
+      font-size:13px;
+      text-decoration:none;
+    }
+    .copy-row {
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+      margin:0 0 14px;
+    }
+    .copy-row button {
+      background:var(--green);
+      border-color:var(--green);
+      color:white;
+    }
+    .edit-status {
+      display:none;
+      align-items:center;
+      padding:8px 10px;
+      border-radius:8px;
+      background:#ecfdf5;
+      color:#166534;
+      font-size:13px;
+      font-weight:900;
+    }
+    body.editing .edit-status { display:inline-flex; }
+    .editable-list li {
+      display:grid;
+      grid-template-columns:1fr auto;
+      gap:8px;
+      align-items:start;
+    }
+    .item-text {
+      display:block;
+      border-radius:8px;
+      padding:3px 4px;
+    }
+    body.editing .item-text {
+      outline:1px dashed #93c5fd;
+      background:#eff6ff;
+    }
+    .add-item, .remove-item {
+      display:none;
+      border:1px solid var(--line);
+      border-radius:8px;
+      padding:7px 9px;
+      font-size:12px;
+      font-weight:900;
+      cursor:pointer;
+    }
+    .add-item {
+      margin-top:8px;
+      background:#f8fafc;
+      color:#1d4ed8;
+    }
+    .remove-item {
+      background:#fff1f2;
+      color:#be123c;
+    }
+    body.editing .add-item, body.editing .remove-item { display:inline-flex; }
+    .table-wrap { overflow:auto; }
+    table {
+      width:100%;
+      border-collapse:collapse;
+      font-size:14px;
+    }
+    th, td {
+      border-bottom:1px solid var(--line);
+      padding:10px;
+      text-align:left;
+      white-space:nowrap;
+    }
+    th { color:#475569; font-size:12px; text-transform:uppercase; }
+    .hidden { display:none !important; }
+    footer { margin-top:34px; color:#64748b; font-size:13px; }
+    @media (max-width:820px) {
+      .hero, .briefing, .toolbar { grid-template-columns:1fr; }
+      .filters { justify-content:flex-start; }
+      .cards { grid-template-columns:1fr; }
+      .facts div { grid-template-columns:1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="hero">
+      <div>
+        <h1>🚦 Sentient Project Status</h1>
+        <p class="subtitle">Live portfolio report for Sentient and adjacent operating projects: status, advancement, pending work, project health, public links, and estimated completion scores.</p>
+      </div>
+      <div class="stats">
+        <div class="stat"><strong>12</strong><span>tracked projects</span></div>
+        <div class="stat"><strong>79</strong><span>average completion</span></div>
+        <div class="stat"><strong>9</strong><span>high/critical priorities</span></div>
+        <div class="stat"><strong>0</strong><span>need review</span></div>
+      </div>
+    </div>
+  </header>
+  <main>
+    <div class="toolbar">
+      <input id="search" placeholder="Search project, status, repo, pending item...">
+      <div class="filters">
+        <button class="active" data-group="all">All</button>
+        <button data-group="ChatGPT Tricks">ChatGPT Tricks</button><button data-group="Client / Brand">Client / Brand</button><button data-group="Prediction &amp; Analytics">Prediction &amp; Analytics</button><button data-group="Reporting">Reporting</button><button data-group="Sentient Content">Sentient Content</button><button data-group="Sentient Data">Sentient Data</button><button data-group="Sentient Marketing">Sentient Marketing</button><button data-group="Sentient Operations">Sentient Operations</button><button data-group="Sentient Tools">Sentient Tools</button>
+      </div>
+    </div>
+    <section class="briefing">
+      <div class="panel">
+        <h2>Executive Readout</h2>
+        <p>The strongest delivery areas right now are Sentient CRM, Sentient Website, Tricks Dash, WeTrack, Sentient Accounts, and Schedulr. The main focus is deployment proof, update hygiene, and deciding which internal tools become official reporting surfaces.</p>
+      </div>
+      <div class="panel">
+        <h2>Current Project Update</h2>
+        <ul>
+          <li>Sentient CRM is the most mature operations system and needs final production smoke proof.</li>
+          <li>Sentient Website and Tricks Dash are clean and externally presentable.</li>
+          <li>Predict is strategically valuable but has the most technical/product risk.</li>
+          <li>Sentient Accounts + Schedulr can become the recurring live reporting loop once refresh/deploy URLs are confirmed.</li>
+        </ul>
+      </div>
+    </section>
+    <section class="panel">
+      <h2>Completion Scoreboard</h2>
+      <div class="table-wrap">
+        <table id="scoreboard">
+          <thead><tr><th>Project</th><th>Group</th><th>Score</th><th>Health</th><th>Priority</th><th>Status</th></tr></thead>
+          <tbody><tr><td>📣 Sentient CRM</td><td>Sentient Operations</td><td>88</td><td>Strong</td><td>Critical</td><td>Implementation-complete, smoke pending</td></tr><tr><td>🏢 Sentient Website</td><td>Sentient Marketing</td><td>87</td><td>On track</td><td>High</td><td>Interactive site ready</td></tr><tr><td>🧭 Tricks Dash</td><td>ChatGPT Tricks</td><td>86</td><td>On track</td><td>High</td><td>Live dashboard</td></tr><tr><td>💡 NEO Website</td><td>Client / Brand</td><td>84</td><td>Needs review</td><td>Medium</td><td>Live landing page</td></tr><tr><td>🧰 Maxx Tools</td><td>Sentient Tools</td><td>82</td><td>On track</td><td>High</td><td>Active tool hub</td></tr><tr><td>🏆 Sentient Case Studies</td><td>Sentient Marketing</td><td>80</td><td>Needs review</td><td>High</td><td>Data-driven static site</td></tr><tr><td>📈 WeTrack</td><td>Reporting</td><td>79</td><td>On track</td><td>High</td><td>Reporting app ready for polish</td></tr><tr><td>📊 Sentient Accounts</td><td>Sentient Data</td><td>78</td><td>Needs reliability pass</td><td>High</td><td>Functional analytics dashboard</td></tr><tr><td>✨ chatgptricks.fun</td><td>ChatGPT Tricks</td><td>76</td><td>Needs review</td><td>Medium</td><td>Public prompt-library site</td></tr><tr><td>🗓️ Schedulr.work / Daily Tracker</td><td>Sentient Tools</td><td>72</td><td>Watch</td><td>High</td><td>Operational but needs deploy clarity</td></tr><tr><td>🧠 Predict / Cortex</td><td>Prediction &amp; Analytics</td><td>68</td><td>Needs production hardening</td><td>High</td><td>Advanced internal tool</td></tr><tr><td>🧪 Social Brain</td><td>Sentient Content</td><td>63</td><td>Watch</td><td>Medium</td><td>Prototype hardened, needs freshness</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+    <section style="margin-top:18px">
+      <div class="copy-row">
+        <span class="edit-status">Edit mode on · changes save in this browser</span>
+        <button id="toggleEdit" type="button">Edit advancements & pending</button>
+        <button id="exportEdits" type="button">Export edits</button>
+        <button id="importEdits" type="button">Import edits</button>
+        <input id="importFile" type="file" accept="application/json" hidden>
+        <button id="copyUpdate" type="button">Copy status summary</button>
+      </div>
+      <div class="cards">
+    <article class="project mid" data-name="Maxx Tools" data-score="82" data-status="Active tool hub" data-priority="High" data-health="On track" data-search="Maxx Tools Sentient Tools Active tool hub Internal mini-app monorepo for Schedulr, Sentient Accounts, FX Tracker, Tweet Visualizer, Chart Animator, and Battle Giveaway. moltbotmaxx" data-group="Sentient Tools">
+      <div class="project-head">
+        <div class="identity">
+          <div class="emoji">🧰</div>
+          <div>
+            <p class="group">Sentient Tools</p>
+            <h3>Maxx Tools</h3>
+          </div>
+        </div>
+        <div class="score">
+          <strong>82</strong><span>/100</span>
+        </div>
+      </div>
+      <div class="meter" aria-label="Completion 82 percent"><i style="width:82%"></i></div>
+      <label class="score-control">Adjust completion <input type="range" min="0" max="100" value="82"></label>
+      <div class="badges">
+        <span class="badge good">On track</span>
+        <span class="badge">Active tool hub</span>
+        <span class="badge priority">High</span>
+      </div>
+      <p class="summary">Internal mini-app monorepo for Schedulr, Sentient Accounts, FX Tracker, Tweet Visualizer, Chart Animator, and Battle Giveaway.</p>
+      <div class="facts">
+        <div><b>Latest update</b><span>bb7f2d02 · 2026-07-14 · fix schedulr initialization race (#1)</span></div>
+        <div><b>Delivery state</b><span>Ready baseline</span></div>
+        <div><b>Workspace</b><span>moltbotmaxx</span></div>
+      </div>
+      <div class="metrics"><span>6 tool families</span><span>No pending workspace changes</span><span>GitHub pushed 2026-07-25</span></div>
+      <details open>
+        <summary>Advancements</summary>
+        <ul class="editable-list" data-list="advancements"><li><span class="item-text">Schedulr initialization race fixed in the latest project update.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">Monorepo has clear tool boundaries and contributor conventions.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">Render blueprint exists for the Sentient Accounts refresh service.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">Daily Tracker has a mandatory sourcing pipeline for articles, X, and Reddit.</span><button class="remove-item" type="button">Remove</button></li></ul>
+        <button class="add-item" type="button" data-list="advancements">Add advancement</button>
+      </details>
+      <details open>
+        <summary>Pending / next</summary>
+        <ul class="editable-list" data-list="pending"><li><span class="item-text">Decide which tools need public or external URLs versus internal-use tools.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">Remove or archive the duplicate backup checkout after confirming nothing unique remains.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">Keep Daily Tracker visible build tags updated on every shipped UI iteration.</span><button class="remove-item" type="button">Remove</button></li></ul>
+        <button class="add-item" type="button" data-list="pending">Add pending item</button>
+      </details>
+      <div class="actions"><a href="https://github.com/moltbotmaxx/maxx-tools" target="_blank" rel="noreferrer">🌐 Repository</a></div>
+    </article>
+    
+    <article class="project mid" data-name="Sentient Accounts" data-score="78" data-status="Functional analytics dashboard" data-priority="High" data-health="Needs reliability pass" data-search="Sentient Accounts Sentient Data Functional analytics dashboard Static Instagram analytics dashboard backed by committed JSON datasets, collector scripts, profile avatars, and a FastAPI refresh service. moltbotmaxx" data-group="Sentient Data">
+      <div class="project-head">
+        <div class="identity">
+          <div class="emoji">📊</div>
+          <div>
+            <p class="group">Sentient Data</p>
+            <h3>Sentient Accounts</h3>
+          </div>
+        </div>
+        <div class="score">
+          <strong>78</strong><span>/100</span>
+        </div>
+      </div>
+      <div class="meter" aria-label="Completion 78 percent"><i style="width:78%"></i></div>
+      <label class="score-control">Adjust completion <input type="range" min="0" max="100" value="78"></label>
+      <div class="badges">
+        <span class="badge neutral">Needs reliability pass</span>
+        <span class="badge">Functional analytics dashboard</span>
+        <span class="badge priority">High</span>
+      </div>
+      <p class="summary">Static Instagram analytics dashboard backed by committed JSON datasets, collector scripts, profile avatars, and a FastAPI refresh service.</p>
+      <div class="facts">
+        <div><b>Latest update</b><span>part of maxx-tools · recent pushes on 2026-07-25</span></div>
+        <div><b>Delivery state</b><span>Ready baseline</span></div>
+        <div><b>Workspace</b><span>moltbotmaxx</span></div>
+      </div>
+      <div class="metrics"><span>JSON-backed</span><span>FastAPI refresh service</span><span>Scheduled collection</span></div>
+      <details open>
+        <summary>Advancements</summary>
+        <ul class="editable-list" data-list="advancements"><li><span class="item-text">Collector and aggregation flow documented.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">Dashboard consumes generated datasets from sentient-accounts/data/.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">Scheduled GitHub workflow refreshes datasets and commits updates.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">Reel-view prototype reads visible Instagram Reel grid counts through Chrome.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">Refresh service can trigger collector runs from the dashboard through Render.</span><button class="remove-item" type="button">Remove</button></li></ul>
+        <button class="add-item" type="button" data-list="advancements">Add advancement</button>
+      </details>
+      <details open>
+        <summary>Pending / next</summary>
+        <ul class="editable-list" data-list="pending"><li><span class="item-text">Confirm production refresh service URL and wire it into dashboard/config.js.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">Harden Instagram session handling and document recovery when rate limited.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">Define reporting KPIs: growth, reach, reel views, account ranking, and 30-day trend.</span><button class="remove-item" type="button">Remove</button></li></ul>
+        <button class="add-item" type="button" data-list="pending">Add pending item</button>
+      </details>
+      <div class="actions"><a href="https://github.com/moltbotmaxx/maxx-tools/tree/main/sentient-accounts" target="_blank" rel="noreferrer">🌐 Repository</a></div>
+    </article>
+    
+    <article class="project mid" data-name="Schedulr.work / Daily Tracker" data-score="72" data-status="Operational but needs deploy clarity" data-priority="High" data-health="Watch" data-search="Schedulr.work / Daily Tracker Sentient Tools Operational but needs deploy clarity Scheduling workspace for weekly content planning with a Chrome/Edge clipper, automated sourcing pipeline, RSS-Bridge support, and account dashboard wiring. moltbotmaxx" data-group="Sentient Tools">
+      <div class="project-head">
+        <div class="identity">
+          <div class="emoji">🗓️</div>
+          <div>
+            <p class="group">Sentient Tools</p>
+            <h3>Schedulr.work / Daily Tracker</h3>
+          </div>
+        </div>
+        <div class="score">
+          <strong>72</strong><span>/100</span>
+        </div>
+      </div>
+      <div class="meter" aria-label="Completion 72 percent"><i style="width:72%"></i></div>
+      <label class="score-control">Adjust completion <input type="range" min="0" max="100" value="72"></label>
+      <div class="badges">
+        <span class="badge warn">Watch</span>
+        <span class="badge">Operational but needs deploy clarity</span>
+        <span class="badge priority">High</span>
+      </div>
+      <p class="summary">Scheduling workspace for weekly content planning with a Chrome/Edge clipper, automated sourcing pipeline, RSS-Bridge support, and account dashboard wiring.</p>
+      <div class="facts">
+        <div><b>Latest update</b><span>bb7f2d02 · 2026-07-14 · fix schedulr initialization race (#1)</span></div>
+        <div><b>Delivery state</b><span>Ready baseline</span></div>
+        <div><b>Workspace</b><span>moltbotmaxx</span></div>
+      </div>
+      <div class="metrics"><span>Chrome/Edge extension</span><span>Articles + X + Reddit sourcing</span><span>Account tab integration</span></div>
+      <details open>
+        <summary>Advancements</summary>
+        <ul class="editable-list" data-list="advancements"><li><span class="item-text">Initialization race fixed after route-level debugging.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">Dedicated browser extension exists for quick collection.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">RSS-Bridge integration documented for X feed cards.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">Consumes Sentient Accounts global data for the Account tab.</span><button class="remove-item" type="button">Remove</button></li></ul>
+        <button class="add-item" type="button" data-list="advancements">Add advancement</button>
+      </details>
+      <details open>
+        <summary>Pending / next</summary>
+        <ul class="editable-list" data-list="pending"><li><span class="item-text">Verify schedulr.work live deployment and current build tag.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">Continue visual refinement of the Account tab.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">Keep data pipeline atomic: collect raw data, run scripts/run-all.sh, validate, then commit.</span><button class="remove-item" type="button">Remove</button></li></ul>
+        <button class="add-item" type="button" data-list="pending">Add pending item</button>
+      </details>
+      <div class="actions"><a href="https://github.com/moltbotmaxx/maxx-tools/tree/main/daily-tracker" target="_blank" rel="noreferrer">🌐 Repository</a><a href="https://schedulr.work" target="_blank" rel="noreferrer">🚀 Live site</a></div>
+    </article>
+    
+    <article class="project mid" data-name="chatgptricks.fun" data-score="76" data-status="Public prompt-library site" data-priority="Medium" data-health="Needs review" data-search="chatgptricks.fun ChatGPT Tricks Public prompt-library site Unified workspace for the ChatGPTricks prompt library, active Vite/React app, extraction guides, and legacy static site artifacts. chatgptricks" data-group="ChatGPT Tricks">
+      <div class="project-head">
+        <div class="identity">
+          <div class="emoji">✨</div>
+          <div>
+            <p class="group">ChatGPT Tricks</p>
+            <h3>chatgptricks.fun</h3>
+          </div>
+        </div>
+        <div class="score">
+          <strong>76</strong><span>/100</span>
+        </div>
+      </div>
+      <div class="meter" aria-label="Completion 76 percent"><i style="width:76%"></i></div>
+      <label class="score-control">Adjust completion <input type="range" min="0" max="100" value="76"></label>
+      <div class="badges">
+        <span class="badge warn">Needs review</span>
+        <span class="badge">Public prompt-library site</span>
+        <span class="badge priority">Medium</span>
+      </div>
+      <p class="summary">Unified workspace for the ChatGPTricks prompt library, active Vite/React app, extraction guides, and legacy static site artifacts.</p>
+      <div class="facts">
+        <div><b>Latest update</b><span>797ad0e · 2026-07-12 · Bust Tricks Dash logo cache</span></div>
+        <div><b>Delivery state</b><span>Update review needed: 41 pending workspace changes</span></div>
+        <div><b>Workspace</b><span>chatgptricks</span></div>
+      </div>
+      <div class="metrics"><span>Vite/React</span><span>Public domain</span><span>41 pending changes</span></div>
+      <details open>
+        <summary>Advancements</summary>
+        <ul class="editable-list" data-list="advancements"><li><span class="item-text">Active app source is at the root for simple builds.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">Legacy site preserved under legacy/ so old paths do not break.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">Public domain remains chatgptricks.fun.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">Prompt extraction and source-processing material exists in guide/.</span><button class="remove-item" type="button">Remove</button></li></ul>
+        <button class="add-item" type="button" data-list="advancements">Add advancement</button>
+      </details>
+      <details open>
+        <summary>Pending / next</summary>
+        <ul class="editable-list" data-list="pending"><li><span class="item-text">Review the 41 pending workspace changes before using this as a delivery baseline.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">Confirm latest GitHub Pages/domain deployment matches local source.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">Separate legacy assets from the active product roadmap.</span><button class="remove-item" type="button">Remove</button></li></ul>
+        <button class="add-item" type="button" data-list="pending">Add pending item</button>
+      </details>
+      <div class="actions"><a href="https://github.com/chatgptricks/prompts" target="_blank" rel="noreferrer">🌐 Repository</a><a href="https://chatgptricks.fun" target="_blank" rel="noreferrer">🚀 Live site</a></div>
+    </article>
+    
+    <article class="project high" data-name="Tricks Dash" data-score="86" data-status="Live dashboard" data-priority="High" data-health="On track" data-search="Tricks Dash ChatGPT Tricks Live dashboard Interactive dashboard for ChatGPT Tricks Instagram posts with gallery, filters, selected-post preview, stats panels, and Predict-backed Post DB data. chatgptricks" data-group="ChatGPT Tricks">
+      <div class="project-head">
+        <div class="identity">
+          <div class="emoji">🧭</div>
+          <div>
+            <p class="group">ChatGPT Tricks</p>
+            <h3>Tricks Dash</h3>
+          </div>
+        </div>
+        <div class="score">
+          <strong>86</strong><span>/100</span>
+        </div>
+      </div>
+      <div class="meter" aria-label="Completion 86 percent"><i style="width:86%"></i></div>
+      <label class="score-control">Adjust completion <input type="range" min="0" max="100" value="86"></label>
+      <div class="badges">
+        <span class="badge good">On track</span>
+        <span class="badge">Live dashboard</span>
+        <span class="badge priority">High</span>
+      </div>
+      <p class="summary">Interactive dashboard for ChatGPT Tricks Instagram posts with gallery, filters, selected-post preview, stats panels, and Predict-backed Post DB data.</p>
+      <div class="facts">
+        <div><b>Latest update</b><span>2b74fce · 2026-07-12 · Fix selected post preview layout</span></div>
+        <div><b>Delivery state</b><span>Ready baseline</span></div>
+        <div><b>Workspace</b><span>chatgptricks</span></div>
+      </div>
+      <div class="metrics"><span>Clean repo</span><span>Live Pages URL</span><span>Predict API dependency</span></div>
+      <details open>
+        <summary>Advancements</summary>
+        <ul class="editable-list" data-list="advancements"><li><span class="item-text">Three-column gallery with sticky filters implemented.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">Caption, stats, OCR text, and metadata search are wired.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">Reads shared Post DB from Predict through /api/tricks-dash/posts.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">Public GitHub Pages URL recorded in repo metadata.</span><button class="remove-item" type="button">Remove</button></li></ul>
+        <button class="add-item" type="button" data-list="advancements">Add advancement</button>
+      </details>
+      <details open>
+        <summary>Pending / next</summary>
+        <ul class="editable-list" data-list="pending"><li><span class="item-text">Keep Predict API availability stable because Tricks Dash depends on it.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">Clarify whether Content Formats should remain a nested sibling or merge into reporting.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">Add an executive KPI summary if this becomes a recurring analytics surface.</span><button class="remove-item" type="button">Remove</button></li></ul>
+        <button class="add-item" type="button" data-list="pending">Add pending item</button>
+      </details>
+      <div class="actions"><a href="https://github.com/chatgptricks/tricks-dash" target="_blank" rel="noreferrer">🌐 Repository</a><a href="https://chatgptricks.github.io/tricks-dash/" target="_blank" rel="noreferrer">🚀 Live site</a></div>
+    </article>
+    
+    <article class="project low" data-name="Predict / Cortex" data-score="68" data-status="Advanced internal tool" data-priority="High" data-health="Needs production hardening" data-search="Predict / Cortex Prediction &amp; Analytics Advanced internal tool FastAPI + React app for Instagram cover analysis using TRIBE v2, OCR, historical post data, A/B cover comparison, and calibrated like prediction. chatgptricks" data-group="Prediction &amp; Analytics">
+      <div class="project-head">
+        <div class="identity">
+          <div class="emoji">🧠</div>
+          <div>
+            <p class="group">Prediction &amp; Analytics</p>
+            <h3>Predict / Cortex</h3>
+          </div>
+        </div>
+        <div class="score">
+          <strong>68</strong><span>/100</span>
+        </div>
+      </div>
+      <div class="meter" aria-label="Completion 68 percent"><i style="width:68%"></i></div>
+      <label class="score-control">Adjust completion <input type="range" min="0" max="100" value="68"></label>
+      <div class="badges">
+        <span class="badge neutral">Needs production hardening</span>
+        <span class="badge">Advanced internal tool</span>
+        <span class="badge priority">High</span>
+      </div>
+      <p class="summary">FastAPI + React app for Instagram cover analysis using TRIBE v2, OCR, historical post data, A/B cover comparison, and calibrated like prediction.</p>
+      <div class="facts">
+        <div><b>Latest update</b><span>8eff44b · 2026-07-12 · Add OCR endpoint for missing posts</span></div>
+        <div><b>Delivery state</b><span>Update review needed: 5 pending workspace changes</span></div>
+        <div><b>Workspace</b><span>chatgptricks</span></div>
+      </div>
+      <div class="metrics"><span>Python/FastAPI</span><span>React frontend</span><span>5 pending changes</span><span>TRIBE v2 dependency</span></div>
+      <details open>
+        <summary>Advancements</summary>
+        <ul class="editable-list" data-list="advancements"><li><span class="item-text">TRIBE v2 visual analysis pipeline documented.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">Post DB stores covers, likes, OCR text, and structured brain data.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">A/B cover ranking and natural-language analysis reports are in scope.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">Enhancement plan defines multi_signal_v2 with caption, account trend, brain outputs, and OOF validation.</span><button class="remove-item" type="button">Remove</button></li></ul>
+        <button class="add-item" type="button" data-list="advancements">Add advancement</button>
+      </details>
+      <details open>
+        <summary>Pending / next</summary>
+        <ul class="editable-list" data-list="pending"><li><span class="item-text">Resolve working-state review and verify production health.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">Review TRIBE v2 CC BY-NC 4.0 license before commercial usage.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">Finish or validate multi_signal_v2 acceptance criteria.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">Stabilize remote GPU/OCR worker configuration if production use continues.</span><button class="remove-item" type="button">Remove</button></li></ul>
+        <button class="add-item" type="button" data-list="pending">Add pending item</button>
+      </details>
+      <div class="actions"><a href="https://github.com/chatgptricks/cortex" target="_blank" rel="noreferrer">🌐 Repository</a><a href="https://chatgptricks.github.io/cortex/" target="_blank" rel="noreferrer">🚀 Live site</a></div>
+    </article>
+    
+    <article class="project high" data-name="Sentient CRM" data-score="88" data-status="Implementation-complete, smoke pending" data-priority="Critical" data-health="Strong" data-search="Sentient CRM Sentient Operations Implementation-complete, smoke pending Internal promotion management system covering client intake, creative work, approvals, publishing evidence, finance, audit history, notifications, and Supabase-backed operations. chatgptricks" data-group="Sentient Operations">
+      <div class="project-head">
+        <div class="identity">
+          <div class="emoji">📣</div>
+          <div>
+            <p class="group">Sentient Operations</p>
+            <h3>Sentient CRM</h3>
+          </div>
+        </div>
+        <div class="score">
+          <strong>88</strong><span>/100</span>
+        </div>
+      </div>
+      <div class="meter" aria-label="Completion 88 percent"><i style="width:88%"></i></div>
+      <label class="score-control">Adjust completion <input type="range" min="0" max="100" value="88"></label>
+      <div class="badges">
+        <span class="badge good">Strong</span>
+        <span class="badge">Implementation-complete, smoke pending</span>
+        <span class="badge priority">Critical</span>
+      </div>
+      <p class="summary">Internal promotion management system covering client intake, creative work, approvals, publishing evidence, finance, audit history, notifications, and Supabase-backed operations.</p>
+      <div class="facts">
+        <div><b>Latest update</b><span>9cf2084 · 2026-07-24 · fix(sheets): store missing row urls as null</span></div>
+        <div><b>Delivery state</b><span>Ready baseline</span></div>
+        <div><b>Workspace</b><span>chatgptricks</span></div>
+      </div>
+      <div class="metrics"><span>React 19 + Supabase</span><span>CI-oriented deploy workflow</span><span>Clean repo</span><span>Critical ops app</span></div>
+      <details open>
+        <summary>Advancements</summary>
+        <ul class="editable-list" data-list="advancements"><li><span class="item-text">Complete workflow implemented across React, Supabase, RLS, Storage, Edge Functions, Cron, outbox, and audit logs.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">Recent workflow simplification completed and old demo/verification code largely removed.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">Production URL documented as responding correctly in project notes.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">Latest checked repo state is clean and actively updated on 2026-07-24.</span><button class="remove-item" type="button">Remove</button></li></ul>
+        <button class="add-item" type="button" data-list="advancements">Add advancement</button>
+      </details>
+      <details open>
+        <summary>Pending / next</summary>
+        <ul class="editable-list" data-list="pending"><li><span class="item-text">Run full Docker-gated pgTAP + real-backend Playwright suite on a machine with Docker.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">Do manual production smoke: Sales creates promotion, Creator completes flow, Sales invoices, Slack DMs arrive.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">Backend work for reset-password and channel edit/deactivate admin actions.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">Fix iCloud dataless-file risk by moving repo out of Desktop/Documents or keeping it downloaded.</span><button class="remove-item" type="button">Remove</button></li></ul>
+        <button class="add-item" type="button" data-list="pending">Add pending item</button>
+      </details>
+      <div class="actions"><a href="https://github.com/chatgptricks/sentient-campaign-manager" target="_blank" rel="noreferrer">🌐 Repository</a><a href="https://chatgptricks.github.io/sentient-campaign-manager/" target="_blank" rel="noreferrer">🚀 Live site</a></div>
+    </article>
+    
+    <article class="project low" data-name="Social Brain" data-score="63" data-status="Prototype hardened, needs freshness" data-priority="Medium" data-health="Watch" data-search="Social Brain Sentient Content Prototype hardened, needs freshness Flask + vanilla frontend app that converts article URLs into social copy variants, carousel structure, image choices, editable visuals, and PNG exports. ealfaro29" data-group="Sentient Content">
+      <div class="project-head">
+        <div class="identity">
+          <div class="emoji">🧪</div>
+          <div>
+            <p class="group">Sentient Content</p>
+            <h3>Social Brain</h3>
+          </div>
+        </div>
+        <div class="score">
+          <strong>63</strong><span>/100</span>
+        </div>
+      </div>
+      <div class="meter" aria-label="Completion 63 percent"><i style="width:63%"></i></div>
+      <label class="score-control">Adjust completion <input type="range" min="0" max="100" value="63"></label>
+      <div class="badges">
+        <span class="badge warn">Watch</span>
+        <span class="badge">Prototype hardened, needs freshness</span>
+        <span class="badge priority">Medium</span>
+      </div>
+      <p class="summary">Flask + vanilla frontend app that converts article URLs into social copy variants, carousel structure, image choices, editable visuals, and PNG exports.</p>
+      <div class="facts">
+        <div><b>Latest update</b><span>0a279c4 · 2026-01-03 · feat: Carousel improvements</span></div>
+        <div><b>Delivery state</b><span>Update review needed: 12 pending workspace changes</span></div>
+        <div><b>Workspace</b><span>ealfaro29</span></div>
+      </div>
+      <div class="metrics"><span>Flask</span><span>OpenAI Responses API</span><span>12 pending changes</span><span>Health endpoints</span></div>
+      <details open>
+        <summary>Advancements</summary>
+        <ul class="editable-list" data-list="advancements"><li><span class="item-text">Security improvements documented: URL validation, private-host blocking, API key auth, rate limiting, cache fallback, health endpoints.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">OpenAI Responses API, Scrape.do, newspaper3k, Pexels, optional Redis, and proxy-image handling documented.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">pytest and GitHub Actions workflow exist.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">Frontend supports editable cards, carousel generation, image alternatives, and export.</span><button class="remove-item" type="button">Remove</button></li></ul>
+        <button class="add-item" type="button" data-list="advancements">Add advancement</button>
+      </details>
+      <details open>
+        <summary>Pending / next</summary>
+        <ul class="editable-list" data-list="pending"><li><span class="item-text">Resolve the 12 pending workspace changes.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">Refresh repo activity; latest commit is from January 2026.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">Confirm production deployment target and environment variables.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">Decide whether this is a continuing product or a useful prototype feeding newer Sentient workflows.</span><button class="remove-item" type="button">Remove</button></li></ul>
+        <button class="add-item" type="button" data-list="pending">Add pending item</button>
+      </details>
+      <div class="actions"><a href="https://github.com/ealfaro29/sentient" target="_blank" rel="noreferrer">🌐 Repository</a></div>
+    </article>
+    
+    <article class="project mid" data-name="NEO Website" data-score="84" data-status="Live landing page" data-priority="Medium" data-health="Needs review" data-search="NEO Website Client / Brand Live landing page Static landing page for Neo Solutions, an AI agent service for businesses that need instant lead response, qualification, follow-up, and appointment booking. chatgptricks" data-group="Client / Brand">
+      <div class="project-head">
+        <div class="identity">
+          <div class="emoji">💡</div>
+          <div>
+            <p class="group">Client / Brand</p>
+            <h3>NEO Website</h3>
+          </div>
+        </div>
+        <div class="score">
+          <strong>84</strong><span>/100</span>
+        </div>
+      </div>
+      <div class="meter" aria-label="Completion 84 percent"><i style="width:84%"></i></div>
+      <label class="score-control">Adjust completion <input type="range" min="0" max="100" value="84"></label>
+      <div class="badges">
+        <span class="badge warn">Needs review</span>
+        <span class="badge">Live landing page</span>
+        <span class="badge priority">Medium</span>
+      </div>
+      <p class="summary">Static landing page for Neo Solutions, an AI agent service for businesses that need instant lead response, qualification, follow-up, and appointment booking.</p>
+      <div class="facts">
+        <div><b>Latest update</b><span>8212205 · 2026-07-10 · Integrate Builderbot chat widget and update testimonials section styling</span></div>
+        <div><b>Delivery state</b><span>Update review needed: 1 pending workspace item</span></div>
+        <div><b>Workspace</b><span>chatgptricks</span></div>
+      </div>
+      <div class="metrics"><span>Static landing page</span><span>Live Pages URL</span><span>Cal.com CTA</span><span>1 pending item</span></div>
+      <details open>
+        <summary>Advancements</summary>
+        <ul class="editable-list" data-list="advancements"><li><span class="item-text">Content inventory captures public messaging, site anchors, metadata, CTA, and positioning.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">Live GitHub Pages URL recorded in handover.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">Builderbot chat widget integrated in the latest project update.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">Spanish/Latin American audience and Cal.com booking flow documented.</span><button class="remove-item" type="button">Remove</button></li></ul>
+        <button class="add-item" type="button" data-list="advancements">Add advancement</button>
+      </details>
+      <details open>
+        <summary>Pending / next</summary>
+        <ul class="editable-list" data-list="pending"><li><span class="item-text">Review the remaining pending workspace item.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">When editing, update both index.html and neo-hero.html unless intentionally changing one entrypoint.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">Validate whether canonical neosolutions.ai and GitHub Pages are fully aligned.</span><button class="remove-item" type="button">Remove</button></li></ul>
+        <button class="add-item" type="button" data-list="pending">Add pending item</button>
+      </details>
+      <div class="actions"><a href="https://github.com/chatgptricks/neosolutions" target="_blank" rel="noreferrer">🌐 Repository</a><a href="https://chatgptricks.github.io/neosolutions/" target="_blank" rel="noreferrer">🚀 Live site</a></div>
+    </article>
+    
+    <article class="project mid" data-name="Sentient Case Studies" data-score="80" data-status="Data-driven static site" data-priority="High" data-health="Needs review" data-search="Sentient Case Studies Sentient Marketing Data-driven static site Dark/lime case-studies page for Sentient client results, generated from CSV metrics and Instagram metadata instead of hand-edited numbers. chatgptricks" data-group="Sentient Marketing">
+      <div class="project-head">
+        <div class="identity">
+          <div class="emoji">🏆</div>
+          <div>
+            <p class="group">Sentient Marketing</p>
+            <h3>Sentient Case Studies</h3>
+          </div>
+        </div>
+        <div class="score">
+          <strong>80</strong><span>/100</span>
+        </div>
+      </div>
+      <div class="meter" aria-label="Completion 80 percent"><i style="width:80%"></i></div>
+      <label class="score-control">Adjust completion <input type="range" min="0" max="100" value="80"></label>
+      <div class="badges">
+        <span class="badge warn">Needs review</span>
+        <span class="badge">Data-driven static site</span>
+        <span class="badge priority">High</span>
+      </div>
+      <p class="summary">Dark/lime case-studies page for Sentient client results, generated from CSV metrics and Instagram metadata instead of hand-edited numbers.</p>
+      <div class="facts">
+        <div><b>Latest update</b><span>9fb66da · 2026-07-14 · Publish Instagram case-study frames</span></div>
+        <div><b>Delivery state</b><span>Update review needed: 3 pending workspace changes</span></div>
+        <div><b>Workspace</b><span>chatgptricks</span></div>
+      </div>
+      <div class="metrics"><span>CSV source of truth</span><span>SQLite mirror</span><span>Static site</span><span>3 pending changes</span></div>
+      <details open>
+        <summary>Advancements</summary>
+        <ul class="editable-list" data-list="advancements"><li><span class="item-text">Single static page with data/post-metrics.csv as source of truth.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">SQLite mirror and scripts rebuild headline counters, top client cards, frames, and copy.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">Rules documented for removed rows, recent posts, low-like exclusions, and TBD metrics.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">Known July 2026 data caveats are recorded.</span><button class="remove-item" type="button">Remove</button></li></ul>
+        <button class="add-item" type="button" data-list="advancements">Add advancement</button>
+      </details>
+      <details open>
+        <summary>Pending / next</summary>
+        <ul class="editable-list" data-list="pending"><li><span class="item-text">Resolve the 3 pending workspace changes.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">Replace metrics CSV with latest export and rerun scrape/build.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">Add or confirm the production URL.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">Fix known CSV typo/date caveats when source data refreshes.</span><button class="remove-item" type="button">Remove</button></li></ul>
+        <button class="add-item" type="button" data-list="pending">Add pending item</button>
+      </details>
+      <div class="actions"><a href="https://github.com/chatgptricks/sentient-case-studies" target="_blank" rel="noreferrer">🌐 Repository</a></div>
+    </article>
+    
+    <article class="project high" data-name="Sentient Website" data-score="87" data-status="Interactive site ready" data-priority="High" data-health="On track" data-search="Sentient Website Sentient Marketing Interactive site ready Seven-room interactive Sentient Agency website with guided chapters, migrated service content, proof, team profiles, contact intake, and legal documents. chatgptricks" data-group="Sentient Marketing">
+      <div class="project-head">
+        <div class="identity">
+          <div class="emoji">🏢</div>
+          <div>
+            <p class="group">Sentient Marketing</p>
+            <h3>Sentient Website</h3>
+          </div>
+        </div>
+        <div class="score">
+          <strong>87</strong><span>/100</span>
+        </div>
+      </div>
+      <div class="meter" aria-label="Completion 87 percent"><i style="width:87%"></i></div>
+      <label class="score-control">Adjust completion <input type="range" min="0" max="100" value="87"></label>
+      <div class="badges">
+        <span class="badge good">On track</span>
+        <span class="badge">Interactive site ready</span>
+        <span class="badge priority">High</span>
+      </div>
+      <p class="summary">Seven-room interactive Sentient Agency website with guided chapters, migrated service content, proof, team profiles, contact intake, and legal documents.</p>
+      <div class="facts">
+        <div><b>Latest update</b><span>5d1584a · 2026-07-16 · Replace directory with immersive room experience</span></div>
+        <div><b>Delivery state</b><span>Ready baseline</span></div>
+        <div><b>Workspace</b><span>chatgptricks</span></div>
+      </div>
+      <div class="metrics"><span>7 rooms</span><span>78 stories</span><span>Clean repo</span><span>Live Pages path</span></div>
+      <details open>
+        <summary>Advancements</summary>
+        <ul class="editable-list" data-list="advancements"><li><span class="item-text">Seven animated full-screen room chapters built from the Sentient Agency illustration.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">78 internal editorial stories migrated across services, results, network, people, process, and contact.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">Static Next.js export designed for GitHub Pages.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">Responsive mobile detail sheet, keyboard navigation, and persistent prev/next controls documented.</span><button class="remove-item" type="button">Remove</button></li></ul>
+        <button class="add-item" type="button" data-list="advancements">Add advancement</button>
+      </details>
+      <details open>
+        <summary>Pending / next</summary>
+        <ul class="editable-list" data-list="pending"><li><span class="item-text">Run build:pages and confirm gh-pages branch deploy after future changes.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">Verify proof links and contact intake before presenting externally.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">Decide whether this is the main replacement for older Sentient web properties.</span><button class="remove-item" type="button">Remove</button></li></ul>
+        <button class="add-item" type="button" data-list="pending">Add pending item</button>
+      </details>
+      <div class="actions"><a href="https://github.com/chatgptricks/sentient-agency-rooms" target="_blank" rel="noreferrer">🌐 Repository</a><a href="https://chatgptricks.github.io/sentient-agency-rooms/" target="_blank" rel="noreferrer">🚀 Live site</a></div>
+    </article>
+    
+    <article class="project mid" data-name="WeTrack" data-score="79" data-status="Reporting app ready for polish" data-priority="High" data-health="On track" data-search="WeTrack Reporting Reporting app ready for polish Instagram report generator that extracts metrics from screenshots with layout-aware OCR and produces presentation slides/PDF reports. chatgptricks" data-group="Reporting">
+      <div class="project-head">
+        <div class="identity">
+          <div class="emoji">📈</div>
+          <div>
+            <p class="group">Reporting</p>
+            <h3>WeTrack</h3>
+          </div>
+        </div>
+        <div class="score">
+          <strong>79</strong><span>/100</span>
+        </div>
+      </div>
+      <div class="meter" aria-label="Completion 79 percent"><i style="width:79%"></i></div>
+      <label class="score-control">Adjust completion <input type="range" min="0" max="100" value="79"></label>
+      <div class="badges">
+        <span class="badge good">On track</span>
+        <span class="badge">Reporting app ready for polish</span>
+        <span class="badge priority">High</span>
+      </div>
+      <p class="summary">Instagram report generator that extracts metrics from screenshots with layout-aware OCR and produces presentation slides/PDF reports.</p>
+      <div class="facts">
+        <div><b>Latest update</b><span>bea2ad7 · 2026-07-21 · Increase icon stat font size to 38px and icon size to 36px on the Overview slide</span></div>
+        <div><b>Delivery state</b><span>Ready baseline</span></div>
+        <div><b>Workspace</b><span>chatgptricks</span></div>
+      </div>
+      <div class="metrics"><span>OCR backend</span><span>GitHub Pages frontend</span><span>Render blueprint</span><span>Clean repo</span></div>
+      <details open>
+        <summary>Advancements</summary>
+        <ul class="editable-list" data-list="advancements"><li><span class="item-text">Anchor-based OCR supports iOS/Android and Reels/Posts using text anchors instead of fixed coordinates.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">Privacy-first stack uses OpenCV + Tesseract, no LLM or third-party AI API.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">Multilingual labels supported for English, Spanish, French, and Portuguese.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">Frontend exports polished slide decks and print-ready PDFs.</span><button class="remove-item" type="button">Remove</button></li></ul>
+        <button class="add-item" type="button" data-list="advancements">Add advancement</button>
+      </details>
+      <details open>
+        <summary>Pending / next</summary>
+        <ul class="editable-list" data-list="pending"><li><span class="item-text">Confirm Render backend URL and CORS production origin.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">Run OCR validation against new Instagram screenshot layouts.</span><button class="remove-item" type="button">Remove</button></li><li><span class="item-text">Decide how it connects to reporting cadence and client monthly reports.</span><button class="remove-item" type="button">Remove</button></li></ul>
+        <button class="add-item" type="button" data-list="pending">Add pending item</button>
+      </details>
+      <div class="actions"><a href="https://github.com/chatgptricks/ig-report-generator" target="_blank" rel="noreferrer">🌐 Repository</a><a href="https://chatgptricks.github.io/ig-report-generator/" target="_blank" rel="noreferrer">🚀 Live site</a></div>
+    </article>
+    </div>
+    </section>
+    <footer>
+      Completion scores are evidence-based estimates from project documentation, repository metadata, recent updates, and the July 25, 2026 project inventory.
+    </footer>
+  </main>
+  <script>
+    const search = document.querySelector('#search');
+    const buttons = [...document.querySelectorAll('button[data-group]')];
+    const scoreKey = 'sentient-project-status-scores';
+    const contentKey = 'sentient-project-status-content';
+    const savedScores = JSON.parse(localStorage.getItem(scoreKey) || '{}');
+    let savedContent = JSON.parse(localStorage.getItem(contentKey) || '{}');
+    let activeGroup = 'all';
+    function updateScore(card, value) {
+      const numeric = Number(value);
+      card.dataset.score = String(numeric);
+      card.querySelector('.score strong').textContent = numeric;
+      card.querySelector('.meter i').style.width = numeric + '%';
+      card.classList.toggle('high', numeric >= 85);
+      card.classList.toggle('mid', numeric >= 70 && numeric < 85);
+      card.classList.toggle('low', numeric < 70);
+      savedScores[card.dataset.name] = numeric;
+      localStorage.setItem(scoreKey, JSON.stringify(savedScores));
+      refreshStats();
+      refreshTable();
+    }
+    function visibleProjects() {
+      return [...document.querySelectorAll('.project')].filter(card => !card.classList.contains('hidden'));
+    }
+    function allProjects() {
+      return [...document.querySelectorAll('.project')];
+    }
+    function refreshStats() {
+      const cards = allProjects();
+      const average = Math.round(cards.reduce((sum, card) => sum + Number(card.dataset.score), 0) / cards.length);
+      document.querySelectorAll('.stat strong')[1].textContent = average;
+    }
+    function refreshTable() {
+      const tbody = document.querySelector('#scoreboard tbody');
+      const rows = allProjects()
+        .sort((a,b) => Number(b.dataset.score) - Number(a.dataset.score))
+        .map(card => `<tr><td>${card.querySelector('h3').textContent}</td><td>${card.dataset.group}</td><td>${card.dataset.score}</td><td>${card.dataset.health}</td><td>${card.dataset.priority}</td><td>${card.dataset.status}</td></tr>`)
+        .join('');
+      tbody.innerHTML = rows;
+    }
+    function applyFilters() {
+      const q = search.value.trim().toLowerCase();
+      document.querySelectorAll('.project').forEach(card => {
+        const groupOk = activeGroup === 'all' || card.dataset.group === activeGroup;
+        const searchOk = !q || card.dataset.search.toLowerCase().includes(q);
+        card.classList.toggle('hidden', !(groupOk && searchOk));
+      });
+    }
+    function itemHtml(text) {
+      const li = document.createElement('li');
+      const span = document.createElement('span');
+      span.className = 'item-text';
+      span.textContent = text;
+      const button = document.createElement('button');
+      button.className = 'remove-item';
+      button.type = 'button';
+      button.textContent = 'Remove';
+      li.append(span, button);
+      return li;
+    }
+    function listValues(list) {
+      return [...list.querySelectorAll('.item-text')]
+        .map(item => item.textContent.trim())
+        .filter(Boolean);
+    }
+    function saveContent() {
+      const payload = {};
+      allProjects().forEach(card => {
+        payload[card.dataset.name] = {
+          advancements: listValues(card.querySelector('[data-list="advancements"]')),
+          pending: listValues(card.querySelector('[data-list="pending"]'))
+        };
+      });
+      savedContent = payload;
+      localStorage.setItem(contentKey, JSON.stringify(payload));
+    }
+    function loadContent() {
+      allProjects().forEach(card => {
+        const projectContent = savedContent[card.dataset.name];
+        if (!projectContent) return;
+        ['advancements', 'pending'].forEach(name => {
+          const list = card.querySelector(`[data-list="${name}"]`);
+          const values = projectContent[name];
+          if (!Array.isArray(values)) return;
+          list.innerHTML = '';
+          values.forEach(value => list.appendChild(itemHtml(value)));
+        });
+      });
+    }
+    function setEditMode(enabled) {
+      document.body.classList.toggle('editing', enabled);
+      document.querySelector('#toggleEdit').textContent = enabled ? 'Done editing' : 'Edit advancements & pending';
+      document.querySelectorAll('.item-text').forEach(item => {
+        item.contentEditable = enabled ? 'true' : 'false';
+      });
+      if (!enabled) saveContent();
+    }
+    buttons.forEach(btn => btn.addEventListener('click', () => {
+      activeGroup = btn.dataset.group;
+      buttons.forEach(b => b.classList.toggle('active', b === btn));
+      applyFilters();
+    }));
+    search.addEventListener('input', applyFilters);
+    document.querySelectorAll('.project').forEach(card => {
+      const input = card.querySelector('input[type="range"]');
+      if (savedScores[card.dataset.name] !== undefined) {
+        input.value = savedScores[card.dataset.name];
+        updateScore(card, input.value);
+      }
+      input.addEventListener('input', () => updateScore(card, input.value));
+    });
+    loadContent();
+    setEditMode(false);
+    document.querySelector('#toggleEdit').addEventListener('click', () => {
+      setEditMode(!document.body.classList.contains('editing'));
+    });
+    document.addEventListener('input', event => {
+      if (event.target.classList && event.target.classList.contains('item-text')) saveContent();
+    });
+    document.addEventListener('click', event => {
+      if (event.target.classList && event.target.classList.contains('remove-item')) {
+        event.target.closest('li').remove();
+        saveContent();
+      }
+      if (event.target.classList && event.target.classList.contains('add-item')) {
+        const listName = event.target.dataset.list;
+        const text = prompt(listName === 'advancements' ? 'New advancement' : 'New pending item');
+        if (!text || !text.trim()) return;
+        const list = event.target.closest('details').querySelector(`[data-list="${listName}"]`);
+        list.appendChild(itemHtml(text.trim()));
+        setEditMode(true);
+        saveContent();
+      }
+    });
+    document.querySelector('#exportEdits').addEventListener('click', () => {
+      saveContent();
+      const blob = new Blob([JSON.stringify({ scores: savedScores, content: savedContent }, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'sentient-project-status-edits.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+    document.querySelector('#importEdits').addEventListener('click', () => document.querySelector('#importFile').click());
+    document.querySelector('#importFile').addEventListener('change', async event => {
+      const file = event.target.files[0];
+      if (!file) return;
+      const payload = JSON.parse(await file.text());
+      if (payload.scores) {
+        Object.assign(savedScores, payload.scores);
+        localStorage.setItem(scoreKey, JSON.stringify(savedScores));
+      }
+      if (payload.content) {
+        savedContent = payload.content;
+        localStorage.setItem(contentKey, JSON.stringify(savedContent));
+        loadContent();
+      }
+      allProjects().forEach(card => {
+        const input = card.querySelector('input[type="range"]');
+        if (savedScores[card.dataset.name] !== undefined) {
+          input.value = savedScores[card.dataset.name];
+          updateScore(card, input.value);
+        }
+      });
+      setEditMode(false);
+    });
+    document.querySelector('#copyUpdate').addEventListener('click', async () => {
+      const cards = allProjects().sort((a,b) => Number(b.dataset.score) - Number(a.dataset.score));
+      const avg = Math.round(cards.reduce((sum, card) => sum + Number(card.dataset.score), 0) / cards.length);
+      const lines = [
+        `Sentient project update: ${avg}/100 average completion across ${cards.length} tracked projects.`,
+        '',
+        ...cards.slice(0, 12).map(card => `- ${card.dataset.name}: ${card.dataset.score}/100, ${card.dataset.health}, ${card.dataset.status}`)
+      ];
+      await navigator.clipboard.writeText(lines.join('\n'));
+      document.querySelector('#copyUpdate').textContent = 'Copied';
+      setTimeout(() => document.querySelector('#copyUpdate').textContent = 'Copy status summary', 1200);
+    });
+    refreshStats();
+    refreshTable();
+  </script>
+</body>
+</html>
