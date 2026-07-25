@@ -1236,7 +1236,7 @@
   <script src="./firebase-config.js"></script>
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js';
-    import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
+    import { getFirestore, doc, getDoc, onSnapshot, setDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
 
     const search = document.querySelector('#search');
     const buttons = [...document.querySelectorAll('button[data-group]')];
@@ -1249,6 +1249,7 @@
     let firestoreDb = null;
     let firestoreDocRef = null;
     let remoteSaveTimer = null;
+    let applyingRemote = false;
     let activeGroup = 'all';
     function hasFirebaseConfig() {
       return Boolean(firebaseConfig && firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.appId);
@@ -1280,6 +1281,13 @@
         } else {
           await saveRemoteNow();
         }
+        onSnapshot(firestoreDocRef, snapshot => {
+          if (!snapshot.exists()) return;
+          applyRemoteData(snapshot.data());
+        }, error => {
+          console.warn('Firebase live sync unavailable', error);
+          setSyncStatus('Sync: local fallback', 'warn');
+        });
         setSyncStatus('Sync: shared online', 'good');
       } catch (error) {
         console.warn('Firebase sync unavailable', error);
@@ -1306,7 +1314,8 @@
         });
       }, 650);
     }
-    function updateScore(card, value) {
+    function updateScore(card, value, options = {}) {
+      const persist = options.persist !== false;
       const numeric = Number(value);
       card.dataset.score = String(numeric);
       card.querySelector('.score strong').textContent = numeric;
@@ -1314,11 +1323,13 @@
       card.classList.toggle('high', numeric >= 85);
       card.classList.toggle('mid', numeric >= 70 && numeric < 85);
       card.classList.toggle('low', numeric < 70);
-      savedScores[card.dataset.name] = numeric;
-      localStorage.setItem(scoreKey, JSON.stringify(savedScores));
+      if (persist) {
+        savedScores[card.dataset.name] = numeric;
+        localStorage.setItem(scoreKey, JSON.stringify(savedScores));
+      }
       refreshStats();
       refreshTable();
-      queueRemoteSave();
+      if (persist && !applyingRemote) queueRemoteSave();
     }
     function visibleProjects() {
       return [...document.querySelectorAll('.project')].filter(card => !card.classList.contains('hidden'));
@@ -1390,13 +1401,35 @@
         });
       });
     }
+    function applyRemoteData(data) {
+      applyingRemote = true;
+      if (data.scores) {
+        Object.assign(savedScores, data.scores);
+        localStorage.setItem(scoreKey, JSON.stringify(savedScores));
+        allProjects().forEach(card => {
+          const input = card.querySelector('input[type="range"]');
+          if (savedScores[card.dataset.name] !== undefined) {
+            input.value = savedScores[card.dataset.name];
+            updateScore(card, input.value, { persist: false });
+          }
+        });
+      }
+      if (data.content) {
+        savedContent = data.content;
+        localStorage.setItem(contentKey, JSON.stringify(savedContent));
+        loadContent();
+        setEditMode(document.body.classList.contains('editing'));
+      }
+      applyingRemote = false;
+      setSyncStatus('Sync: shared online', 'good');
+    }
     function setEditMode(enabled) {
       document.body.classList.toggle('editing', enabled);
       document.querySelector('#toggleEdit').textContent = enabled ? 'Done editing' : 'Edit advancements & pending';
       document.querySelectorAll('.item-text').forEach(item => {
         item.contentEditable = enabled ? 'true' : 'false';
       });
-      if (!enabled) saveContent();
+      if (!enabled && !applyingRemote) saveContent();
     }
     await initRemoteSync();
     loadContent();
@@ -1470,7 +1503,7 @@
         const input = card.querySelector('input[type="range"]');
         if (savedScores[card.dataset.name] !== undefined) {
           input.value = savedScores[card.dataset.name];
-          updateScore(card, input.value);
+          updateScore(card, input.value, { persist: false });
         }
       });
       setEditMode(false);
