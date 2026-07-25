@@ -1393,14 +1393,17 @@
       image.src = url;
     }
     async function loadDailyWallpaper() {
-      const today = new Date().toISOString().slice(0, 10);
+      const requestedDate = new URLSearchParams(window.location.search).get('wallpaperDate');
+      const today = /^\d{4}-\d{2}-\d{2}$/.test(requestedDate || '')
+        ? requestedDate
+        : new Date().toISOString().slice(0, 10);
       try {
         const cached = JSON.parse(localStorage.getItem(wallpaperKey) || 'null');
         if (cached?.date === today && cached.url) {
           applyWallpaper(cached.url, cached.title);
           return;
         }
-        const response = await fetch('https://api.nasa.gov/planetary/apod?api_key=DEMO_KEY&thumbs=true');
+        const response = await fetch(`https://api.nasa.gov/planetary/apod?api_key=DEMO_KEY&thumbs=true&date=${today}`);
         if (!response.ok) return;
         const data = await response.json();
         const url = data.media_type === 'image' ? data.url : data.thumbnail_url;
