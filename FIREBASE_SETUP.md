@@ -22,6 +22,9 @@ gh secret set FIREBASE_CONFIG --repo chatgptricks/sentient-project-status-dashbo
 `firebase-config.js` is intentionally ignored by Git. Use
 `firebase-config.example.js` as the checked-in development template.
 
+The same deployment also expects `NASA_API_KEY`, stored as a GitHub Actions
+secret. It supplies the random high-resolution APOD wallpaper.
+
 ## 3. Firestore Document
 
 The dashboard writes one document:

@@ -22,9 +22,12 @@ jobs:
       - name: Add runtime Firebase configuration
         env:
           FIREBASE_CONFIG: ${{ secrets.FIREBASE_CONFIG }}
+          NASA_API_KEY: ${{ secrets.NASA_API_KEY }}
         run: |
           test -n "$FIREBASE_CONFIG"
+          test -n "$NASA_API_KEY"
           printf '%s\n' "$FIREBASE_CONFIG" > firebase-config.js
+          printf 'window.SENTIENT_NASA_API_KEY = %s;\n' "$(jq -Rn --arg value "$NASA_API_KEY" '$value')" > app-config.js
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
