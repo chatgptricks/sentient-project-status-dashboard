@@ -1390,6 +1390,10 @@
     let savedContent = JSON.parse(localStorage.getItem(contentKey) || '{}');
     const adminSessionKey = 'sentient-project-status-admin';
     const wallpaperKey = 'sentient-project-status-apod';
+    const fixedWallpaper = {
+      url:'https://images-assets.nasa.gov/image/PIA23646/PIA23646~orig.jpg',
+      title:'NASA Image Library: PIA23646'
+    };
     const nasaLibraryQueries = ['nebula', 'galaxy', 'star cluster', 'supernova', 'cosmic'];
     const minWallpaperWidth = 2560;
     const minWallpaperPixels = 3_500_000;
@@ -1479,6 +1483,10 @@
       }
     }
     async function loadDailyWallpaper() {
+      if (fixedWallpaper?.url) {
+        await applyWallpaper(fixedWallpaper.url, fixedWallpaper.title);
+        return;
+      }
       const requestedDate = new URLSearchParams(window.location.search).get('wallpaperDate');
       const hasRequestedDate = /^\d{4}-\d{2}-\d{2}$/.test(requestedDate || '');
       const imageDate = hasRequestedDate ? requestedDate : null;
