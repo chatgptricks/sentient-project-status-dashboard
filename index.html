@@ -1388,6 +1388,8 @@
     const adminSessionKey = 'sentient-project-status-admin';
     const wallpaperKey = 'sentient-project-status-apod';
     const nasaLibraryQueries = ['nebula', 'galaxy', 'star cluster', 'supernova', 'cosmic'];
+    const minWallpaperWidth = 2560;
+    const minWallpaperPixels = 3_500_000;
     const firebaseConfig = window.SENTIENT_FIREBASE_CONFIG || {};
     const nasaApiKey = window.SENTIENT_NASA_API_KEY || 'DEMO_KEY';
     const dailyWallpaper = document.querySelector('#dailyWallpaper');
@@ -1408,6 +1410,10 @@
       return new Promise((resolve) => {
         const image = new Image();
         image.onload = () => {
+          if (image.naturalWidth < minWallpaperWidth || image.naturalWidth * image.naturalHeight < minWallpaperPixels) {
+            resolve(false);
+            return;
+          }
           dailyWallpaper.style.backgroundImage = `url("${url.replace(/"/g, '%22')}")`;
           dailyWallpaper.title = title || 'NASA image';
           dailyWallpaper.classList.add('loaded');
@@ -1429,7 +1435,7 @@
         if (!searchResponse.ok) return false;
         const search = await searchResponse.json();
         const candidates = (search.collection?.items || []).filter((item) => item.data?.[0]?.nasa_id);
-        let attempts = Math.min(candidates.length, 5);
+        let attempts = Math.min(candidates.length, 16);
         while (candidates.length && attempts-- > 0) {
           const index = Math.floor(Math.random() * candidates.length);
           const candidate = candidates.splice(index, 1)[0];
@@ -1439,9 +1445,7 @@
           const asset = await assetResponse.json();
           const links = (asset.collection?.items || []).map((item) => item.href?.replace(/^http:/, 'https:')).filter(Boolean);
           const original = links.find((href) => /~orig\.(?:jpe?g|png|webp)$/i.test(href));
-          const fallback = links.find((href) => /~medium\.(?:jpe?g|png|webp)$/i.test(href));
-          if (await applyWallpaper(original || fallback, `NASA Image Library: ${data.title || 'Space'}`)) return true;
-          if (original && fallback && await applyWallpaper(fallback, `NASA Image Library: ${data.title || 'Space'}`)) return true;
+          if (await applyWallpaper(original, `NASA Image Library: ${data.title || 'Space'}`)) return true;
         }
         return false;
       } catch (error) {
